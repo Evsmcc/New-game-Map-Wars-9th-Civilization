@@ -1,0 +1,39 @@
+@font-face{font-family:Inter;src:local("Inter"),local("Segoe UI"),local("Helvetica Neue"),local("PingFang SC")}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI","Noto Sans","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;color:#111827;background:#f9fafb}
+.container{max-width:1100px;margin:0 auto;padding:16px}
+.site-header{position:sticky;top:0;z-index:10;background:#ffffffcc;backdrop-filter:saturate(1.2) blur(8px);border-bottom:1px solid #e5e7eb}
+.header-container{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{margin:0;font-size:22px;letter-spacing:.5px}
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filter-btn{appearance:none;border:1px solid #e5e7eb;background:#fff;color:#111827;padding:8px 12px;border-radius:10px;cursor:pointer;font-size:14px;transition:.2s}
+.filter-btn:hover{border-color:#c7cdd3;background:#f8fafc}
+.filter-btn.active{background:#111827;color:#fff;border-color:#111827}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;padding:20px 0}
+.card{grid-column:span 6;background:#fff;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04);display:flex;flex-direction:column}
+.media{width:100%;aspect-ratio:16/9;background:#eef2f7;display:block;object-fit:cover}
+.media-box{width:100%}
+.media-text{width:100%;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:#eef2f7;color:#374151;font-weight:600}
+.content{padding:14px 14px 12px;display:flex;flex-direction:column;gap:8px;flex:1}
+.title{font-size:18px;margin:0}
+.desc{margin:0;color:#4b5563;line-height:1.5;font-size:14px}
+.meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:12px;padding:4px 8px;border-radius:999px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb}
+.start-btn{appearance:none;border:0;background:#0ea5e9;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.start-btn:hover{background:#0284c7}
+@media (max-width:900px){.card{grid-column:span 12}}
+@media (min-width:901px) and (max-width:1200px){.card{grid-column:span 6}}
+@media (max-width:600px){.filters{gap:6px}.filter-btn{padding:6px 10px}}
+.game-layout{display:flex;gap:16px;padding:20px 0}
+.sidebar{width:220px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:12px;align-self:flex-start}
+.info-title{font-size:16px;margin:0 0 6px}
+.stat{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid #f3f4f6}
+.switch{display:flex;align-items:center;gap:8px;cursor:pointer}
+.board-wrap{flex:1;display:flex;justify-content:center}
+.board{width:min(680px,100%);aspect-ratio:1/1;background:#fef3c7;border:1px solid #9a3412;position:relative;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr)}
+.cell{border:1px solid rgba(146,64,14,.4);position:relative}
+.stone{width:80%;height:80%;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:inset 0 2px 6px rgba(0,0,0,.2)}
+.stone.black{background:#111827}
+.stone.white{background:#f9fafb;border:1px solid #cbd5e1}
