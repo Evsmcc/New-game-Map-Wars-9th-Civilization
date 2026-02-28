@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>象棋变体 - 棋盘格点</title>
+<style>
+:root{--dot:clamp(4px,0.7vmin,10px);--gap:clamp(14px,3vmin,40px);--bg:#fafafa;--fg:#222;--invalid:#eaeef2;--valid-odd:#2ecc71;--valid-even:#f1c40f;--link:#b8b8b8;}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+#board{height:92vmin;aspect-ratio:2/3;display:grid;place-content:center;padding:var(--gap);background:linear-gradient(#fff,#f3f3f3);border:1px solid #ddd;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.07)}
+#app{display:flex;gap:clamp(12px,2.5vmin,28px);align-items:stretch;padding:clamp(8px,1vmin,12px)}
+#sidebar{width:clamp(160px,22vmin,240px);background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.07);display:flex}
+#sidebar .panel{display:flex;flex-direction:column;gap:8px;width:100%}
+#sidebar .row{display:flex;justify-content:space-between;align-items:center;font-size:clamp(12px,1.6vmin,15px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#374151}
+#sidebar .row span{color:#6b7280}
+#sidebar .row strong{font-size:clamp(13px,1.9vmin,17px);color:#2c7be5}
+#sidebar .actions{display:flex;gap:8px;margin-top:6px}
+#sidebar button{padding:6px 10px;border:1px solid #cfd5db;border-radius:10px;background:linear-gradient(#fff,#f7f7f7);cursor:pointer}
+#guide{width:clamp(260px,32vmin,420px);background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.07);display:flex}
+#guide .panel{display:flex;flex-direction:column;gap:8px;width:100%}
+#guide h3{margin:0 0 6px;font-weight:700;color:#2c7be5;font-size:clamp(14px,2.1vmin,18px);white-space:nowrap}
+#guide ul{margin:0;padding-left:0;display:flex;flex-direction:column;gap:6px;font-size:clamp(12px,1.7vmin,15px);list-style:none}
+#guide ul li{display:flex;align-items:flex-start;gap:8px;white-space:normal;overflow:visible;flex-wrap:wrap}
+#guide ul li strong{display:inline-block;padding:2px 10px;border-radius:999px;color:#fff;min-width:2em;text-align:center;background:#2c7be5}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9999}
+#modal .box{background:#fff;border-radius:12px;min-width:260px;padding:16px 20px;box-shadow:0 10px 30px rgba(0,0,0,.2);text-align:center}
+#modal .box h3{margin:0 0 6px;font-size:18px}
+#modal .box p{margin:0 0 12px}
+#modal .box .actions{display:flex;justify-content:center;gap:10px}
+#modal .box button{padding:6px 12px;border:1px solid #bbb;border-radius:8px;background:#f7f7f7;cursor:pointer}
+#grid{display:grid;width:100%;height:100%;gap:var(--gap);position:relative}
+.links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.dot{width:var(--dot);height:var(--dot);border-radius:50%;background:var(--fg);justify-self:center;align-self:center}
+.dot.invalid{background:var(--invalid)}
+.dot.valid-odd{background:var(--valid-odd)}
+.dot.valid-even{background:var(--valid-even)}
+.dot{position:relative;z-index:1}
+.dot.target{box-shadow:0 0 0 6px rgba(46,204,113,.35);outline:2px solid rgba(39,174,96,.8);outline-offset:2px}
+.dot.target.capture{box-shadow:0 0 0 6px rgba(231,76,60,.35);outline-color:rgba(231,76,60,.9)}
+.pieces{position:absolute;inset:0;z-index:2;pointer-events:none}
+.piece{position:absolute;left:0;top:0;transform:translate(-50%,-50%);width:clamp(22px,4.5vmin,44px);height:clamp(22px,4.5vmin,44px);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:clamp(14px,2.2vmin,24px);font-weight:700;color:#fff;border:2px solid rgba(0,0,0,.6);box-shadow:0 4px 10px rgba(0,0,0,.15);pointer-events:auto}
+.piece.red{background:#e74c3c}
+.piece.black{background:#34495e}
+.piece.selected{box-shadow:0 0 0 4px rgba(39,174,96,.8),0 6px 14px rgba(0,0,0,.25)}
+.piece.capture{box-shadow:0 0 0 6px rgba(231,76,60,.85),0 10px 18px rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="panel">
+      <div class="row"><span>回合数</span><strong id="roundCount">1</strong></div>
+      <div class="row"><span>当前回合</span><strong id="currentPlayer">红棋</strong></div>
+      <label class="row"><span>黑棋托管</span><input id="autoBlack" type="checkbox" checked></label>
+      <div class="row"><span>状态</span><strong id="statusText">进行中</strong></div>
+      <div class="actions"><button id="restartBtn">重新开始</button></div>
+    </div>
+  </aside>
+  <div id="board"><div id="grid"></div></div>
+  <aside id="guide">
+    <div class="panel">
+      <h3>走法说明</h3>
+      <ul>
+        <li><strong>王</strong>：上下左右一步，可出九宫</li>
+        <li><strong>后</strong>：直线或斜线任意步滑行</li>
+        <li><strong>车</strong>：直线或斜线任意步滑行</li>
+        <li><strong>马</strong>：先直后斜“日”，蹩马腿</li>
+        <li><strong>炮</strong>：平移；吃子需隔一枚“炮架”</li>
+        <li><strong>相</strong>：斜线任意步，路径不可越子</li>
+        <li><strong>士</strong>：斜线一步，不限九宫</li>
+        <li><strong>兵</strong>：未过河直进一格；过河可平移；不可后退</li>
+        <li><strong>旗</strong>：直线或斜线一步</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+<div id="modal">
+  <div class="box">
+    <h3 id="modalTitle">游戏结束</h3>
+    <p id="modalText"></p>
+    <div class="actions">
+      <button id="modalRestart">重新开始</button>
+    </div>
+  </div>
+</div>
+<script>
+const rows=25, cols=17;
+const grid=document.getElementById('grid');
+grid.style.gridTemplateColumns=`repeat(${cols}, 1fr)`;
+grid.style.gridTemplateRows=`repeat(${rows}, 1fr)`;
+const frag=document.createDocumentFragment();
+for(let r=1;r<=rows;r++){
+  for(let c=1;c<=cols;c++){
+    const d=document.createElement('div');
+    d.className='dot';
+    d.dataset.r=r;
+    d.dataset.c=c;
+    d.title=`${r},${c}`;
+    if(((r+c)%2)===1){d.classList.add('invalid')}
+    if(r==1 && (c!= 9)){d.classList.add('invalid')}
+    if(r==25 && (c!= 9)){d.classList.add('invalid')}
+    if(r==2 && (c!= 8 && c!= 10)){d.classList.add('invalid')}
+    if(r==24 && (c!= 8 && c!= 10)){d.classList.add('invalid')}
+    if(!d.classList.contains('invalid')){
+      if(r%2===1){d.classList.add('valid-odd')}
+      else {d.classList.add('valid-even')}
+    }
+    frag.appendChild(d);
+  }
+}
+grid.appendChild(frag);
+
+const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+svg.setAttribute('class','links');
+grid.prepend(svg);
+
+const piecesLayer=document.createElement('div');
+piecesLayer.className='pieces';
+grid.prepend(piecesLayer);
+
+const initialPieces=[
+  {side:'black',type:'王',r:3,c:9},
+  {side:'black',type:'旗',r:9,c:9},  
+  {side:'black',type:'后',r:1,c:9},  
+  {side:'black',type:'士',r:3,c:7},{side:'black',type:'士',r:3,c:11},
+  {side:'black',type:'相',r:3,c:5},{side:'black',type:'相',r:3,c:13}, 
+  {side:'black',type:'车',r:3,c:1},{side:'black',type:'车',r:3,c:17},
+  {side:'black',type:'马',r:3,c:3},{side:'black',type:'马',r:3,c:15},
+  {side:'black',type:'炮',r:7,c:3},{side:'black',type:'炮',r:7,c:15},
+  {side:'black',type:'兵',r:9,c:1},
+  {side:'black',type:'兵',r:9,c:3},
+  {side:'black',type:'兵',r:9,c:5},    
+  {side:'black',type:'兵',r:9,c:7},
+  {side:'black',type:'兵',r:9,c:11}, 
+  {side:'black',type:'兵',r:9,c:13},
+  {side:'black',type:'兵',r:9,c:15},
+  {side:'black',type:'兵',r:9,c:17},
+  {side:'black',type:'兵',r:11,c:5},
+  {side:'black',type:'兵',r:11,c:13},
+  {side:'red',type:'王',r:23,c:9},
+  {side:'red',type:'后',r:25,c:9},    
+  {side:'red',type:'士',r:23,c:7},{side:'red',type:'士',r:23,c:11},
+  {side:'red',type:'相',r:23,c:5},{side:'red',type:'相',r:23,c:13},  
+  {side:'red',type:'车',r:23,c:1},{side:'red',type:'车',r:23,c:17},
+  {side:'red',type:'马',r:23,c:3},{side:'red',type:'马',r:23,c:15},
+  {side:'red',type:'炮',r:19,c:3},{side:'red',type:'炮',r:19,c:15},
+  {side:'red',type:'兵',r:17,c:1},
+  {side:'red',type:'兵',r:17,c:3},
+  {side:'red',type:'兵',r:17,c:5},    
+  {side:'red',type:'兵',r:17,c:7},
+  {side:'red',type:'旗',r:17,c:9},
+  {side:'red',type:'兵',r:17,c:11},
+  {side:'red',type:'兵',r:17,c:13},  
+  {side:'red',type:'兵',r:17,c:15},
+  {side:'red',type:'兵',r:17,c:17},
+  {side:'red',type:'兵',r:15,c:5},
+  {side:'red',type:'兵',r:15,c:13},    
+];
+
+function isValidCell(r,c){
+  if((r+c)%2===1) return false;
+  if(r===1||r===25) return c===9;
+  if(r===2||r===24) return c===8||c===10;
+  return true;
+}
+
+const pieces=[];
+for(const p of initialPieces){
+  if(!isValidCell(p.r,p.c)) continue;
+  const el=document.createElement('div');
+  el.className=`piece ${p.side}`;
+  el.textContent=p.type;
+  el.dataset.r=p.r;
+  el.dataset.c=p.c;
+  el.dataset.side=p.side;
+  el.dataset.type=p.type;
+  piecesLayer.appendChild(el);
+  pieces.push({el,...p});
+}
+
+let turn=1;
+let currentSide='red';
+let autoBlack=true;
+let gameOver=false;
+let winner=null;
+function updateInfo(){
+  const rc=document.getElementById('roundCount');
+  const cp=document.getElementById('currentPlayer');
+  const ab=document.getElementById('autoBlack');
+  const st=document.getElementById('statusText');
+  if(rc) rc.textContent=String(turn);
+  if(cp) cp.textContent=currentSide==='red'?'红棋':'黑棋';
+  if(ab) ab.checked=autoBlack;
+  if(st) st.textContent=gameOver ? (winner==='red'?'红胜':'黑胜') : '进行中';
+}
+function showGameOver(){
+  const modal=document.getElementById('modal');
+  const text=document.getElementById('modalText');
+  if(text) text.textContent=winner==='red'?'红方胜利':'黑方胜利';
+  if(modal) modal.style.display='flex';
+}
+const autoBlackInput=document.getElementById('autoBlack');
+if(autoBlackInput){autoBlackInput.addEventListener('change',e=>{autoBlack=e.target.checked;updateInfo();maybeAutoBlack();});}
+const restartBtn=document.getElementById('restartBtn');
+if(restartBtn){restartBtn.addEventListener('click',()=>{resetGame();});}
+const modalRestart=document.getElementById('modalRestart');
+if(modalRestart){modalRestart.addEventListener('click',()=>{document.getElementById('modal').style.display='none';resetGame();});}
+function resetGame(){
+  gameOver=false;winner=null;turn=1;currentSide='red';
+  piecesLayer.innerHTML='';
+  pieces.length=0;
+  for(const p of initialPieces){
+    if(!isValidCell(p.r,p.c)) continue;
+    const el=document.createElement('div');
+    el.className=`piece ${p.side}`;
+    el.textContent=p.type;
+    el.dataset.r=p.r;
+    el.dataset.c=p.c;
+    el.dataset.side=p.side;
+    el.dataset.type=p.type;
+    piecesLayer.appendChild(el);
+    const obj={el,...p};
+    pieces.push(obj);
+    el.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(gameOver) return;
+      if(selectedPiece && selectedPiece!==el){
+        const sel=pieces.find(x=>x.el===selectedPiece);
+        if(sel && sel.side!==obj.side){
+          const dot=grid.querySelector(`.dot[data-r="${obj.r}"][data-c="${obj.c}"]`);
+          if(dot && dot.classList.contains('target')){
+            movePiece(sel,obj.r,obj.c);
+            return;
+          }
+        }
+      }
+      if(obj.side!==currentSide) return;
+      selectPiece(el);
+      showTargets(obj);
+    });
+  }
+  clearTargets();
+  updateInfo();
+  raf();
+}
+
+let selectedPiece=null;
+function selectPiece(el){
+  if(selectedPiece===el){el.classList.remove('selected');selectedPiece=null;clearTargets();return;}
+  if(selectedPiece){selectedPiece.classList.remove('selected')}
+  selectedPiece=el;
+  el.classList.add('selected');
+}
+function clearTargets(){
+  for(const t of grid.querySelectorAll('.dot.target')) t.classList.remove('target','capture');
+  for(const p of pieces){p.el.classList.remove('capture')}
+}
+function occupyMap(){
+  const m=new Map();
+  for(const p of pieces){m.set(`${p.r},${p.c}`,p)}
+  return m;
+}
+function inBounds(r,c){return r>=1&&r<=rows&&c>=1&&c<=cols}
+function isEdgeAllowed(r,c,dr,dc){
+  if(dr===0&&dc===2){
+    if(r%2===0) return false;
+    if(r===13) return false;
+  }
+  if(dr===2&&dc===0){
+    if(c%2===0) return false;
+  }
+  return true;
+}
+function neighbors(r,c){
+  const res=[];
+  const deltas=[[2,0],[0,2],[2,2],[2,-2]];
+  for(const [dr,dc] of deltas){
+    const r2=r+dr,c2=c+dc;
+    if(!inBounds(r2,c2)) continue;
+    if(!isValidCell(r2,c2)) continue;
+    if(!isEdgeAllowed(r,c,dr,dc)) continue;
+    res.push([r2,c2]);
+  }
+  return res;
+}
+// 车：沿连线的直线或对角线滑行，遇己方阻挡停，遇敌方可作为终点
+function rookTargets(occ,r,c,side){
+  const res=[];
+  const dirs=[[2,0],[-2,0],[0,2],[0,-2],[2,2],[2,-2],[-2,2],[-2,-2]];
+  for(const [dr0,dc0] of dirs){
+    let cr=r, cc=c;
+    for(;;){
+      const nr=cr+dr0, nc=cc+dc0;
+      if(!inBounds(nr,nc)) break;
+      if(!isValidCell(nr,nc)) break;
+      const adr=Math.abs(dr0), adc=Math.abs(dc0);
+      if(!isEdgeAllowed(cr,cc,adr,adc)) break;
+      const other=occ.get(`${nr},${nc}`);
+      if(!other){
+        res.push([nr,nc]);
+        cr=nr; cc=nc;
+        continue;
+      }
+      if(other.side!==side){
+        res.push([nr,nc]);
+      }
+      break;
+    }
+  }
+  return res;
+}
+// 马：先直后斜的“日”，直行一步若被占则该方向不可走（蹩马腿）
+function horseTargets(occ,r,c,side){
+  const res=[];
+  const dirs=[[2,0],[-2,0],[0,2],[0,-2]];
+  for(const [dr1,dc1] of dirs){
+    const r1=r+dr1, c1=c+dc1;
+    if(!inBounds(r1,c1)) continue;
+    if(!isValidCell(r1,c1)) continue;
+    const adr=Math.abs(dr1), adc=Math.abs(dc1);
+    if(!isEdgeAllowed(r,c,adr,adc)) continue;
+    if(occ.get(`${r1},${c1}`)) continue;
+    if(dr1!==0){
+      for(const dc2 of [2,-2]){
+        const r2=r1+Math.sign(dr1)*2, c2=c1+dc2;
+        if(!inBounds(r2,c2)) continue;
+        if(!isValidCell(r2,c2)) continue;
+        const o=occ.get(`${r2},${c2}`);
+        if(o && o.side===side) continue;
+        res.push([r2,c2]);
+      }
+    }else{
+      for(const dr2 of [2,-2]){
+        const r2=r1+dr2, c2=c1+Math.sign(dc1)*2;
+        if(!inBounds(r2,c2)) continue;
+        if(!isValidCell(r2,c2)) continue;
+        const o=occ.get(`${r2},${c2}`);
+        if(o && o.side===side) continue;
+        res.push([r2,c2]);
+      }
+    }
+  }
+  return res;
+}
+// 炮：直线移动；无阻时平走，吃子需隔恰好一枚“炮架”，落在第一枚敌子上
+function cannonTargets(occ,r,c,side){
+  const res=[];
+  const dirs=[[2,0],[-2,0],[0,2],[0,-2]];
+  for(const [dr0,dc0] of dirs){
+    let cr=r, cc=c, blocked=false;
+    for(;;){
+      const nr=cr+dr0, nc=cc+dc0;
+      if(!inBounds(nr,nc)) break;
+      if(!isValidCell(nr,nc)) break;
+      const adr=Math.abs(dr0), adc=Math.abs(dc0);
+      if(!isEdgeAllowed(cr,cc,adr,adc)) break;
+      const other=occ.get(`${nr},${nc}`);
+      if(!blocked){
+        if(!other){
+          res.push([nr,nc]);
+          cr=nr; cc=nc;
+          continue;
+        }else{
+          blocked=true;
+          cr=nr; cc=nc;
+          continue;
+        }
+      }else{
+        if(!other){
+          cr=nr; cc=nc;
+          continue;
+        }else{
+          if(other.side!==side) res.push([nr,nc]);
+          break;
+        }
+      }
+    }
+  }
+  return res;
+}
+// 兵：未过河仅直进一格；过河可直进或左右平移一格；不可后退
+function soldierTargets(occ,r,c,side){
+  const res=[];
+  const forward = side==='black' ? 2 : -2;
+  const dirs=[];
+  dirs.push([forward,0]);
+  if(side==='black' ? r>13 : r<13){
+    dirs.push([0,2],[0,-2]);
+  }
+  for(const [dr,dc] of dirs){
+    const r2=r+dr,c2=c+dc;
+    if(!inBounds(r2,c2)) continue;
+    if(!isValidCell(r2,c2)) continue;
+    if(!isEdgeAllowed(r,c,Math.abs(dr),Math.abs(dc))) continue;
+    const o=occ.get(`${r2},${c2}`);
+    if(o && o.side===side) continue;
+    res.push([r2,c2]);
+  }
+  return res;
+}
+// 士：斜线一步，不限九宫
+function advisorTargets(occ,r,c,side){
+  const res=[];
+  const dirs=[[2,2],[2,-2],[-2,2],[-2,-2]];
+  for(const [dr,dc] of dirs){
+    const r2=r+dr,c2=c+dc;
+    if(!inBounds(r2,c2)) continue;
+    if(!isValidCell(r2,c2)) continue;
+    if(!isEdgeAllowed(r,c,2,2)) continue;
+    const o=occ.get(`${r2},${c2}`);
+    if(o && o.side===side) continue;
+    res.push([r2,c2]);
+  }
+  return res;
+}
+// 相：沿对角线任意步滑行，路径不可被阻挡
+function elephantTargets(occ,r,c,side){
+  const res=[];
+  const dirs=[[2,2],[2,-2],[-2,2],[-2,-2]];
+  for(const [dr,dc] of dirs){
+    let cr=r, cc=c;
+    for(;;){
+      const nr=cr+dr, nc=cc+dc;
+      if(!inBounds(nr,nc)) break;
+      if(!isValidCell(nr,nc)) break;
+      if(!isEdgeAllowed(cr,cc,2,2)) break;
+      const other=occ.get(`${nr},${nc}`);
+      if(!other){
+        res.push([nr,nc]);
+        cr=nr; cc=nc;
+        continue;
+      }
+      if(other.side!==side){
+        res.push([nr,nc]);
+      }
+      break;
+    }
+  }
+  return res;
+}
+// 王：上下左右一步，可出九宫
+function kingTargets(occ,r,c,side){
+  const res=[];
+  const dirs=[[2,0],[-2,0],[0,2],[0,-2]];
+  for(const [dr,dc] of dirs){
+    const r2=r+dr,c2=c+dc;
+    if(!inBounds(r2,c2)) continue;
+    if(!isValidCell(r2,c2)) continue;
+    if(!isEdgeAllowed(r,c,Math.abs(dr),Math.abs(dc))) continue;
+    const o=occ.get(`${r2},${c2}`);
+    if(o && o.side===side) continue;
+    res.push([r2,c2]);
+  }
+  return res;
+}
+function queenTargets(occ,r,c,side){
+  return rookTargets(occ,r,c,side);
+}
+function flagTargets(occ,r,c,side){
+  const res=[];
+  const dirs=[[2,0],[-2,0],[0,2],[0,-2],[2,2],[2,-2],[-2,2],[-2,-2]];
+  for(const [dr,dc] of dirs){
+    const r2=r+dr,c2=c+dc;
+    if(!inBounds(r2,c2)) continue;
+    if(!isValidCell(r2,c2)) continue;
+    if(!isEdgeAllowed(r,c,Math.abs(dr),Math.abs(dc))) continue;
+    const o=occ.get(`${r2},${c2}`);
+    if(o && o.side===side) continue;
+    res.push([r2,c2]);
+  }
+  return res;
+}
+function showTargets(piece){
+  clearTargets();
+  const occ=occupyMap();
+  let cells;
+  if(piece.type==='车') cells=rookTargets(occ,piece.r,piece.c,piece.side);
+  else if(piece.type==='马') cells=horseTargets(occ,piece.r,piece.c,piece.side);
+  else if(piece.type==='炮') cells=cannonTargets(occ,piece.r,piece.c,piece.side);
+  else if(piece.type==='兵') cells=soldierTargets(occ,piece.r,piece.c,piece.side);
+  else if(piece.type==='士') cells=advisorTargets(occ,piece.r,piece.c,piece.side);
+  else if(piece.type==='相') cells=elephantTargets(occ,piece.r,piece.c,piece.side);
+  else if(piece.type==='王') cells=kingTargets(occ,piece.r,piece.c,piece.side);
+  else if(piece.type==='后') cells=queenTargets(occ,piece.r,piece.c,piece.side);
+  else if(piece.type==='旗') cells=flagTargets(occ,piece.r,piece.c,piece.side);
+  else cells=neighbors(piece.r,piece.c);
+  for(const [r2,c2] of cells){
+    const other=occ.get(`${r2},${c2}`);
+    if(other && other.side===piece.side) continue;
+    const dot=grid.querySelector(`.dot[data-r="${r2}"][data-c="${c2}"]`);
+    if(dot){
+      dot.classList.add('target');
+      if(other && other.side!==piece.side){
+        dot.classList.add('capture');
+        other.el.classList.add('capture');
+      }
+    }
+  }
+}
+function movePiece(piece,r2,c2){
+  const occ=occupyMap();
+  const target=occ.get(`${r2},${c2}`);
+  if(target && target.side!==piece.side){
+    target.el.remove();
+    const idx=pieces.indexOf(target);
+    if(idx>-1) pieces.splice(idx,1);
+  }
+  piece.r=r2; piece.c=c2;
+  piece.el.dataset.r=r2; piece.el.dataset.c=c2;
+  clearTargets();
+  if(selectedPiece){selectedPiece.classList.remove('selected');selectedPiece=null;}
+  raf();
+}
+for(const p of pieces){
+  p.el.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(gameOver) return;
+    if(selectedPiece && selectedPiece!==p.el){
+      const sel=pieces.find(x=>x.el===selectedPiece);
+      if(sel && sel.side!==p.side){
+        const dot=grid.querySelector(`.dot[data-r="${p.r}"][data-c="${p.c}"]`);
+        if(dot && dot.classList.contains('target')){
+          movePiece(sel,p.r,p.c);
+          return;
+        }
+      }
+    }
+    if(p.side!==currentSide) return;
+    selectPiece(p.el);
+    showTargets(p);
+  });
+}
+grid.addEventListener('click',e=>{
+  if(gameOver) return;
+  if(!selectedPiece){
+    clearTargets();
+    return;
+  }
+  const rect=grid.getBoundingClientRect();
+  const tx=e.clientX, ty=e.clientY;
+  const targets=[...grid.querySelectorAll('.dot.target')];
+  let best=null, bestD=Infinity;
+  for(const d of targets){
+    const b=d.getBoundingClientRect();
+    const cx=b.left+b.width/2, cy=b.top+b.height/2;
+    const dx=cx-tx, dy=cy-ty;
+    const dist=Math.hypot(dx,dy);
+    if(dist<bestD){bestD=dist;best=d;}
+  }
+  const snapRadius=Math.max(24, Math.min(rect.width,rect.height)*0.04);
+  let t=null;
+  if(best && bestD<=snapRadius){t=best;}
+  else { t=e.target.closest('.dot.target'); }
+  if(!t){
+    selectedPiece.classList.remove('selected');selectedPiece=null;clearTargets();
+    return;
+  }
+  const piece=pieces.find(x=>x.el===selectedPiece);
+  if(!piece) return;
+  const r2=+t.dataset.r,c2=+t.dataset.c;
+  movePiece(piece,r2,c2);
+});
+
+function draw(){
+  const rect=grid.getBoundingClientRect();
+  const w=Math.round(rect.width);
+  const h=Math.round(rect.height);
+  svg.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  svg.setAttribute('width',w);
+  svg.setAttribute('height',h);
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const pts=[];
+  const dots=[...grid.querySelectorAll('.dot:not(.invalid)')];
+  for(const d of dots){
+    const r=+d.dataset.r,c=+d.dataset.c;
+    const b=d.getBoundingClientRect();
+    const x=b.left-rect.left+b.width/2;
+    const y=b.top-rect.top+b.height/2;
+    pts.push({r,c,x,y});
+  }
+  const map=new Map(pts.map(p=>[`${p.r},${p.c}`,p]));
+  const deltas=[[2,0],[0,2],[2,2],[2,-2]];
+  for(const p of pts){
+    for(const [dr,dc] of deltas){
+      if(dr===0&&dc===2&&p.r%2===0) continue;
+      if(dr===0&&dc===2&&p.r===13) continue;
+      if(dr===2&&dc===0&&p.c%2===0) continue;
+      const q=map.get(`${p.r+dr},${p.c+dc}`);
+      if(!q) continue;
+      const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1',p.x);
+      line.setAttribute('y1',p.y);
+      line.setAttribute('x2',q.x);
+      line.setAttribute('y2',q.y);
+      line.setAttribute('stroke','var(--link)');
+      line.setAttribute('stroke-width','2');
+      line.setAttribute('stroke-linecap','round');
+      svg.appendChild(line);
+    }
+  }
+  for(const piece of pieces){
+    const c=map.get(`${piece.r},${piece.c}`);
+    if(!c) continue;
+    piece.el.style.left=`${c.x}px`;
+    piece.el.style.top=`${c.y}px`;
+  }
+}
+
+const raf=()=>requestAnimationFrame(()=>requestAnimationFrame(draw));
+window.addEventListener('resize',raf);
+function advanceTurn(){currentSide=currentSide==='red'?'black':'red';turn++;updateInfo();}
+function movePiece(piece,r2,c2){
+  const occ=occupyMap();
+  const target=occ.get(`${r2},${c2}`);
+  if(target && target.side!==piece.side){
+    if(target.type==='王'){
+      target.el.remove();
+      const idxK=pieces.indexOf(target);
+      if(idxK>-1) pieces.splice(idxK,1);
+      piece.r=r2; piece.c=c2;
+      piece.el.dataset.r=r2; piece.el.dataset.c=c2;
+      clearTargets();
+      if(selectedPiece){selectedPiece.classList.remove('selected');selectedPiece=null;}
+      winner=piece.side;gameOver=true;
+      updateInfo();
+      raf();
+      showGameOver();
+      return;
+    }
+    target.el.remove();
+    const idx=pieces.indexOf(target);
+    if(idx>-1) pieces.splice(idx,1);
+  }
+  piece.r=r2; piece.c=c2;
+  piece.el.dataset.r=r2; piece.el.dataset.c=c2;
+  clearTargets();
+  if(selectedPiece){selectedPiece.classList.remove('selected');selectedPiece=null;}
+  advanceTurn();
+  raf();
+  maybeAutoBlack();
+}
+updateInfo();
+raf();
+</script>
+<script>
+function occFromState(state){
+  const m=new Map();
+  for(const p of state){m.set(`${p.r},${p.c}`,p)}
+  return m;
+}
+function cloneState(){
+  return pieces.map(p=>({side:p.side,type:p.type,r:p.r,c:p.c}));
+}
+function getTargetsByType(occ,p){
+  if(p.type==='车') return rookTargets(occ,p.r,p.c,p.side);
+  if(p.type==='马') return horseTargets(occ,p.r,p.c,p.side);
+  if(p.type==='炮') return cannonTargets(occ,p.r,p.c,p.side);
+  if(p.type==='兵') return soldierTargets(occ,p.r,p.c,p.side);
+  if(p.type==='士') return advisorTargets(occ,p.r,p.c,p.side);
+  if(p.type==='相') return elephantTargets(occ,p.r,p.c,p.side);
+  if(p.type==='王') return kingTargets(occ,p.r,p.c,p.side);
+  if(p.type==='后') return queenTargets(occ,p.r,p.c,p.side);
+  if(p.type==='旗') return flagTargets(occ,p.r,p.c,p.side);
+  const cells=neighbors(p.r,p.c);
+  const res=[];for(const [r2,c2] of cells){const o=occ.get(`${r2},${c2}`);if(!o||o.side!==p.side)res.push([r2,c2])}
+  return res;
+}
+function generateMovesFor(side,state){
+  const occ=occFromState(state);
+  const moves=[];
+  for(let i=0;i<state.length;i++){
+    const p=state[i];
+    if(p.side!==side) continue;
+    const cells=getTargetsByType(occ,p);
+    for(const [r2,c2] of cells){
+      const target=occ.get(`${r2},${c2}`);
+      moves.push({i,from:{r:p.r,c:p.c},to:{r:r2,c:c2},capture:!!target});
+    }
+  }
+  return moves;
+}
+function applyMoveState(state,move){
+  const ns=state.map(o=>({side:o.side,type:o.type,r:o.r,c:o.c}));
+  const mover=ns[move.i];
+  const capturedIndex=ns.findIndex(q=>q.r===move.to.r&&q.c===move.to.c);
+  if(capturedIndex>-1) ns.splice(capturedIndex,1);
+  mover.r=move.to.r;mover.c=move.to.c;
+  return ns;
+}
+function pieceValue(t){
+  if(t==='王') return 10000;
+  if(t==='车') return 600;
+  if(t==='炮') return 550;
+  if(t==='马') return 400;
+  if(t==='相') return 220;
+  if(t==='士') return 200;
+  if(t==='兵') return 120;
+  if(t==='后') return 900;
+  if(t==='旗') return 150;
+  return 100;
+}
+function evaluate(state){
+  let s=0;
+  for(const p of state){
+    const v=pieceValue(p.type);
+    s += (p.side==='black'? v : -v);
+  }
+  return s;
+}
+function minimax(state,depth,side,alpha,beta){
+  if(depth===0) return {score:evaluate(state)};
+  const moves=generateMovesFor(side,state);
+  if(moves.length===0) return {score:evaluate(state)};
+  const maximizing = side==='black';
+  let best = maximizing? -Infinity : Infinity;
+  let bestMove=null;
+  for(const mv of moves){
+    const next=applyMoveState(state,mv);
+    const child=minimax(next,depth-1, side==='black'?'red':'black', alpha,beta);
+    const score=child.score;
+    if(maximizing){
+      if(score>best){best=score;bestMove=mv;}
+      alpha=Math.max(alpha,best);
+      if(beta<=alpha) break;
+    }else{
+      if(score<best){best=score;bestMove=mv;}
+      beta=Math.min(beta,best);
+      if(beta<=alpha) break;
+    }
+  }
+  return {score:best, move:bestMove};
+}
+function aiPickMove(depth=3){
+  const state=cloneState();
+  const res=minimax(state,depth,'black',-Infinity,Infinity);
+  return res.move||null;
+}
+function maybeAutoBlack(){
+  if(!autoBlack) return;
+  if(gameOver) return;
+  if(currentSide!=='black') return;
+  setTimeout(()=>{
+    const mv=aiPickMove(3);
+    if(!mv) return;
+    const piece=pieces.find(p=>p.side==='black'&&p.r===mv.from.r&&p.c===mv.from.c);
+    if(!piece) return;
+    movePiece(piece,mv.to.r,mv.to.c);
+  },50);
+}
+</script>
+</body>
+</html>
