@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Wars: 9th Civilization</title>
+</head>
+<body>
+    <div class="game-container">
+        <!-- 左侧信息栏 -->
+        <aside class="sidebar left-sidebar">
+            <div class="sidebar-top">
+                <h1>Civilization IX</h1>
+                <div class="language-select" style="margin-bottom: 15px; display: flex; gap: 5px;">
+                    <button class="lang-btn" data-lang="zh">中文</button>
+                    <button class="lang-btn active" data-lang="en">EN</button>
+                </div>
+                <div class="game-stats">
+                    <div class="stat-item">
+                        <span class="label">Current Turn</span>
+                        <span id="current-player-name" class="value p1">Player 1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Round</span>
+                        <span id="round-number" class="value">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Deck</span>
+                        <span id="deck-count" class="value">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="player-scores">
+                <div class="score-card p1">
+                    <span class="player-label">Black Score:</span>
+                    <span id="p1-score" class="score-value">0</span>
+                </div>
+                <div class="score-card p2">
+                    <span class="player-label">White Score:</span>
+                    <span id="p2-score" class="score-value">0</span>
+                </div>
+            </div>
+
+            <div class="sidebar-bottom">
+                <div class="ai-control" style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 8px; border: 1px solid #ddd;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 0.9rem; color: #333;">
+                        <input type="checkbox" id="ai-toggle" style="margin-right: 8px; width: 16px; height: 16px;" checked>
+                        AI Control White Player
+                    </label>
+                </div>
+                <button id="rules-btn" class="btn primary" style="width: 100%; margin-bottom: 8px;">Rules</button>
+                <button id="restart-btn" class="btn secondary" style="width: 100%;">Restart</button>
+            </div>
+        </aside>
+
+        <!-- 游戏说明模态框 -->
+        <div id="rules-modal" class="modal hidden">
+            <div class="modal-content rules-modal-content">
+                <span class="close-btn" id="rules-modal-close">&times;</span>
+                <div class="rules-scroll-area">
+                    <h1>📜 Civilization IX Manual</h1>
+                    <p><strong>Civilization IX</strong> is a 2-player abstract strategy game combining space occupation and hand management.</p>
+                    
+                    <div class="rules-story">
+                        <p>Background:</p>
+                        <ul>
+                            <li>Board: Territory</li>
+                            <li>Yellow: Plains</li>
+                            <li>Green: Forest</li>
+                            <li>Blue: River</li>
+                            <li>Brown: Mountain</li>
+                            <br>
+                            <li>Yellow Card: Plains Civ</li>
+                            <li>Green Card: Forest Civ</li>
+                            <li>Blue Card: River Civ</li>
+                            <li>Brown Card: Mountain Civ</li>
+                            <li>Red Card: War Civ</li>
+                        </ul>
+                    </div>
+
+                    <hr>
+
+                    <h3>1. Components</h3>
+                    <ul>
+                        <li><strong>Star Map (Board)</strong>: 10x10 grid with four base colors (Yellow, Brown, Blue, Green). Some cells have base values of 1-3.</li>
+                        <li><strong>Civilization (Hand)</strong>:
+                            <ul>
+                                <li><strong>Build Cards</strong>: Yellow/Green (1-9), Blue (1-5), Brown (5-9).</li>
+                                <li><strong>Attack Cards (Red)</strong>: Values 5-9, with special "Overdrive" ability.</li>                               
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <hr>
+
+                    <h3>2. Setup</h3>
+                    <ul>
+                        <li>Each player draws <strong>11 cards</strong> at the start.</li>
+                        <li>Player 1 (Black) starts first, followed by Player 2 (White).</li>
+                        <li>At the start of each turn, the current player automatically draws 2 cards.</li>
+                    </ul>
+
+                    <hr>
+
+                    <h3>3. Turn Flow</h3>
+                    <p>During each turn, you can:</p>
+                    
+                    <h4>A. Build Civilization (Place Card)</h4>
+                    <p>Place <strong>at most 1 card</strong> per turn. Placement must follow one of these rules:</p>
+                    <ol>
+                        <li><strong>Initial</strong>: Match card color and cell color, and value.</li>
+                        <li><strong>Expansion</strong>: Match color. Must be adjacent to your existing piece. Value must be same or adjacent (±1).</li>
+                        <li><strong>Overdrive (Cover)</strong>: <strong>Red cards only</strong>. Can cover opponent's piece if:
+                            <ul>
+                                <li>Red card value is <strong>higher</strong> than opponent's piece.</li>
+                                <li>Must be adjacent to your existing piece with same or adjacent (±1) value.</li>
+                            </ul>
+                        </li>
+                    </ol>
+
+                    <h4>B. Resource Recycling (Discard)</h4>
+                    <ul>
+                        <li>Drag 1 card (or 2 if no card was placed) to the "Discard" area.</li>
+                        <li>Discard area shows the last recycled card.</li>
+                    </ul>
+
+                    <h4>🏁 Turn End</h4>
+                    <ul>
+                        <li>Turn ends when your hand size is <strong>≤ 11 cards</strong>.</li>
+                        <li><em>Note: If you placed a card, discard 1. If not, discard 2 to reach ≤ 11.</em></li>
+                    </ul>
+
+                    <hr>
+
+                    <h3>4. Scoring</h3>
+                    <p>Game ends when <strong>both players have no cards</strong>. Points are then calculated.</p>
+                    
+                    <h4>Chain Scoring Rule:</h4>
+                    <ul>
+                        <li>Connected pieces (Up, Down, Left, Right) form a "Civilization Chain".</li>
+                        <li><strong>Ladder Check</strong>: A piece scores only if the chain contains <strong>all values smaller than it</strong>.
+                            <ul>
+                                <li><em>Example: A value 4 piece scores only if values 1, 2, and 3 exist in the same chain.</em></li>
+                            </ul>
+                        </li>
+                        <li>If valid, the piece value is added to your score; otherwise, it scores 0.</li>
+                    </ul>
+
+                    <hr>
+
+                    <h3>5. Victory</h3>
+                    <ul>
+                        <li>The player with the highest total score wins. Ties are possible.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中间主区域 -->
+        <main class="game-main">
+            <!-- Player 2 Hand (Top) -->
+            <div class="player-area" id="player2-area">
+                <div class="hand-container horizontal-hand-container">
+                    <div class="hand-info-mini">
+                        <span class="hand-label">White Player 2 Hand</span>
+                        <span id="p2-hand-count" class="count-badge">7</span>
+                    </div>
+                    <div class="hand horizontal-hand" id="p2-hand"></div>
+                </div>
+            </div>
+
+            <!-- 棋盘与紧靠的丢弃区 -->
+            <div class="middle-section">
+                <div class="board-main">
+                    <div class="board-container">
+                        <div id="board" class="board"></div>
+                    </div>
+                    
+                    <!-- 丢弃区紧靠棋盘右侧 -->
+                    <aside class="right-panel">
+                        <div id="discard-square" class="discard-square">
+                            <span class="discard-label">Discard</span>
+                            <div id="discard-content" class="discard-content"></div>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- Player 1 Hand (Bottom) -->
+            <div class="player-area" id="player1-area">
+                <div class="hand-container horizontal-hand-container">
+                    <div class="hand-info-mini">
+                        <span class="hand-label">Black Player 1 Hand</span>
+                        <span id="p1-hand-count" class="count-badge">7</span>
+                    </div>
+                    <div class="hand horizontal-hand" id="p1-hand"></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Rules Sidebar -->
+        <aside class="rules-sidebar">
+            <div class="game-rules">
+                <section class="rules-section">
+                    <h3>Turn Flow</h3>
+                    <ol>
+                        <li>Draw 2 cards</li>
+                        <li>Place 1 card (optional)</li>
+                        <li>Discard until hand ≤ 11</li>
+                    </ol>
+                </section>
+
+                <section class="rules-section">
+                    <h3>Placement</h3>
+                    <ul>
+                        <li><strong>Initial</strong>: Match color & value.</li>
+                        <li><strong>Expansion</strong>: Adjacent, value same or ±1, match color.</li>
+                        <li><strong>Overdrive</strong>: Red only. Value > opponent, and must be adjacent to your existing piece with same or adjacent (±1) value.</li>
+                    </ul>
+                </section>
+
+                <section class="rules-section">
+                    <h3>Scoring</h3>
+                    <ul>
+                        <li>Sum of valid piece values.</li>
+                        <li><strong>Valid</strong>: Chain must contain all smaller values.</li>
+                    </ul>
+                </section>
+
+                <section class="rules-section">
+                    <h3>Game End</h3>
+                    <p>Game ends when both players have no cards.</p>
+                </section>
+            </div>
+        </aside>
+    </div>
+    
+    <!-- Modal: Game Over or Other Alerts -->
+    <div id="message-modal" class="modal hidden">
+        <div class="modal-content">
+            <p id="modal-text"></p>
+            <button id="modal-close-btn">Close</button>
+        </div>
+    </div>
+
+</body>
+</html>
+<style>
+:root {
+    --bg-color: #f0f2f5;
+    --board-bg: #eecfa1; /* 木纹色（默认，可能被覆盖） */
+    --grid-line: #8b4513;
+    --p1-color: #333; /* 黑棋 */
+    --p2-color: #fff; /* 白棋 */
+    --highlight-color: #4caf50;
+    --selected-color: #ffeb3b;
+    
+    /* 格子颜色定义 */
+    --cell-yellow: #fff59d;
+    --cell-brown: #bcaaa4;
+    --cell-blue: #90caf9;
+    --cell-green: #a5d6a7;
+    
+    /* 卡牌颜色定义（稍微深一点以便看清文字） */
+    --card-yellow: #fdd835;
+    --card-brown: #8d6e63;
+    --card-blue: #64b5f6;
+    --card-green: #81c784;
+    --card-red: #e57373;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    display: flex;
+    justify-content: center;
+    height: 100vh; /* 占满全屏高度 */
+    overflow: hidden; /* 禁止滚动 */
+    padding: 10px;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: row; 
+    align-items: stretch;
+    gap: 10px;
+    max-width: 1400px;
+    width: 100%;
+    height: 100%; 
+    padding: 10px;
+    margin: 0 auto;
+}
+
+/* 左侧信息栏 */
+.left-sidebar {
+    width: 220px;
+    background: white;
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.sidebar-top h1 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    color: #2c3e50;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.game-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95em;
+}
+
+.stat-item .label {
+    color: #666;
+}
+
+.stat-item .value {
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.stat-item .value.p1 { background-color: #333; color: white; }
+.stat-item .value.p2 { background-color: #f0f0f0; color: #333; border: 1px solid #ccc; }
+
+.player-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.score-card {
+    padding: 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.score-card.p1 { background-color: #333; color: white; }
+.score-card.p2 { background-color: #f0f0f0; color: #333; border: 1px solid #ccc; }
+
+.score-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+}
+
+/* 主游戏区域（手牌-中间区-手牌） */
+.game-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden; /* 防止内容溢出导致父元素变形 */
+}
+
+.player-area {
+    width: 100%;
+    background: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    flex-shrink: 0;
+}
+
+.hand-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hand-info-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.hand-label {
+    font-size: 0.75em;
+    color: #666;
+    font-weight: bold;
+}
+
+.count-badge {
+    background: #e9ecef;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    font-weight: bold;
+    color: #333;
+}
+
+.hand {
+    flex: 1;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 4px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    min-height: 48px;
+    align-items: center;
+    border: 1px inset #eee;
+    scrollbar-width: none;
+}
+
+.hand::-webkit-scrollbar {
+    display: none;
+}
+
+.card {
+    width: 38px;
+    height: 38px;
+    border-radius: 6px;
+    border: 2px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    font-size: 1em;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+/* 卡牌颜色 */
+.card.yellow { background-color: var(--card-yellow); color: #333; text-shadow: none; }
+.card.brown { background-color: var(--card-brown); }
+.card.blue { background-color: var(--card-blue); }
+.card.green { background-color: var(--card-green); }
+.card.red { background-color: var(--card-red); }
+
+.card.selected {
+    transform: scale(1.15);
+    box-shadow: 0 0 8px var(--selected-color);
+    border-color: var(--selected-color) !important;
+    z-index: 10;
+}
+
+/* Board */
+.middle-section {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+    min-height: 0;
+    min-width: 0; /* 允许内部元素根据比例收缩 */
+}
+
+.board-main {
+    flex: 1;
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+    min-width: 0; /* 关键：允许 board-main 缩小以适应比例计算 */
+    gap: 15px;
+}
+
+.board-container {
+    /* 使用 vmin 方案：无论窗口如何变化，棋盘始终以视口较小边的 65% 作为基准，
+       这样在所有浏览器中都能保证绝对的正方形，且不会被父容器宽度限制死 */
+    height: 65vmin; 
+    width: 65vmin;
+    max-height: calc(100vh - 250px);
+    max-width: calc(100% - 140px);
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+    display: block;
+    position: relative;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    gap: 1px;
+    background-color: var(--grid-line);
+    border: 2px solid var(--grid-line);
+    width: 100%;
+    height: 100%;
+}
+
+.right-panel {
+    width: 125px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+    justify-content: center;
+}
+
+.rules-sidebar {
+    width: 260px;
+    background: white;
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    height: 100%;
+}
+
+.game-rules {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* 均匀分布规则段落 */
+    font-size: 0.82rem;
+    color: #444;
+    line-height: 1.35;
+}
+
+.rules-section {
+    margin-bottom: 8px;
+}
+
+.rules-section:last-child {
+    margin-bottom: 0;
+}
+
+.rules-section h3 {
+    font-size: 0.9rem;
+    color: #2c3e50;
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+}
+
+.rules-section h3::before {
+    content: '◈';
+    margin-right: 6px;
+    color: #8b4513;
+    font-size: 0.75rem;
+}
+
+.rules-section ul, .rules-section ol {
+    padding-left: 16px;
+}
+
+.rules-section li {
+    margin-bottom: 2px;
+}
+
+.rules-section strong {
+    color: #d32f2f;
+}
+
+.discard-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+
+.discard-square {
+    width: 120px;
+    height: 120px;
+    border: 3px dashed #8b4513;
+    border-radius: 12px;
+    background-color: rgba(139, 69, 19, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+.discard-square:hover {
+    background-color: rgba(139, 69, 19, 0.2);
+    transform: scale(1.05);
+}
+
+.discard-label {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #8b4513;
+    margin-bottom: 5px;
+    pointer-events: none;
+}
+
+.discard-content {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.discard-content .card {
+    transform: scale(1.5);
+    cursor: default;
+}
+
+.cell {
+    position: relative;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 颜色样式 */
+.cell.yellow { background-color: var(--cell-yellow); }
+.cell.brown { background-color: var(--cell-brown); }
+.cell.blue { background-color: var(--cell-blue); }
+.cell.green { background-color: var(--cell-green); }
+
+.cell:hover {
+    filter: brightness(0.9);
+}
+
+.cell.has-piece {
+    cursor: default;
+}
+
+/* 合法位置高亮 */
+.cell.highlight-valid::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.3);
+    box-shadow: inset 0 0 0 4px #3406b1, inset 0 0 20px rgba(198, 8, 11, 0.8);
+    z-index: 3;
+    pointer-events: none;
+    animation: pulse-highlight 1s infinite ease-in-out;
+}
+
+/* 最后落子位置高亮 */
+.cell.last-move::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 3px solid #ff4444; /* 显眼的红色边框 */
+    background-color: rgba(255, 68, 68, 0.15); /* 淡淡的红底 */
+    z-index: 4;
+    pointer-events: none;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+}
+
+@keyframes pulse-highlight {
+    0% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(0.98); }
+    100% { opacity: 0.6; transform: scale(1); }
+}
+
+.cell-number {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.25); /* 半透明黑色，避免干扰棋子视觉 */
+    user-select: none;
+    z-index: 1;
+}
+
+/* 移动端字体调整 */
+@media (max-width: 600px) {
+    .cell-number {
+        font-size: 0.9rem;
+    }
+}
+
+.piece {
+    width: 90%;
+    height: 90%;
+    border-radius: 6px; /* 类似卡牌的圆角 */
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    z-index: 2; /* 确保在数字之上 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.1em;
+    color: white; /* 默认文字颜色 */
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+    border-width: 3px;
+    border-style: solid;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* 棋子颜色（对应手牌颜色）- 仅作为文字颜色或边框颜色的参考，背景由玩家归属决定 */
+/* 
+.piece.yellow { background-color: var(--card-yellow); color: #333; text-shadow: none; }
+.piece.brown { background-color: var(--card-brown); }
+.piece.blue { background-color: var(--card-blue); }
+.piece.green { background-color: var(--card-green); }
+*/
+
+/* 区分两家落子归属（通过背景颜色和边框） */
+.piece.p1 {
+    background-color: #333; /* 玩家1 深色背景 */
+    color: #fff;            /* 白色文字 */
+    border-color: #000;     /* 黑色边框 */
+}
+
+.piece.p2 {
+    background-color: #f0f0f0; /* 玩家2 浅色背景 */
+    color: #000;               /* 黑色文字 */
+    border-color: #fff;        /* 白色边框 */
+}
+
+/* 如果想保留原来的颜色信息，可以用文字颜色来区分 */
+.piece.p1.yellow { color: var(--card-yellow); }
+.piece.p1.brown { color: var(--card-brown); }
+.piece.p1.blue { color: var(--card-blue); }
+.piece.p1.green { color: var(--card-green); }
+.piece.p1.red { color: var(--card-red); }
+
+/* 对于浅色背景的P2，颜色可能需要调整深一点以保证对比度，或者直接用原色 */
+.piece.p2.yellow { color: #fbc02d; /* 深一点的黄 */ }
+.piece.p2.brown { color: #795548; /* 原棕色 */ }
+.piece.p2.blue { color: #1976d2; /* 原蓝色 */ }
+.piece.p2.green { color: #388e3c; /* 原绿色 */ }
+.card.ai-hidden {
+    background: linear-gradient(135deg, #607d8b 25%, #546e7a 25%, #546e7a 50%, #607d8b 50%, #607d8b 75%, #546e7a 75%, #546e7a 100%);
+    background-size: 20px 20px;
+    color: rgba(255,255,255,0.5);
+    border: 2px solid #455a64;
+    cursor: default;
+}
+
+.lang-btn {
+    flex: 1;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    border: 1px solid #ddd;
+    background: #f8f9fa;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.lang-btn.active {
+    background: #2c3e50;
+    color: white;
+    border-color: #2c3e50;
+}
+
+.lang-btn:hover:not(.active) {
+    background: #e9ecef;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* 游戏说明模态框特有样式 */
+.rules-modal-content {
+    max-width: 800px;
+    width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    position: relative;
+    padding: 30px;
+}
+
+.rules-scroll-area {
+    overflow-y: auto;
+    padding-right: 15px;
+}
+
+.rules-scroll-area h1 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    text-align: center;
+}
+
+.rules-scroll-area h3 {
+    margin: 20px 0 10px 0;
+    color: #2c3e50;
+    border-left: 4px solid #4caf50;
+    padding-left: 10px;
+}
+
+.rules-scroll-area h4 {
+    margin: 15px 0 8px 0;
+    color: #34495e;
+}
+
+.rules-scroll-area p {
+    margin-bottom: 10px;
+    line-height: 1.6;
+    color: #444;
+}
+
+.rules-scroll-area ul, .rules-scroll-area ol {
+    margin-bottom: 15px;
+    padding-left: 25px;
+    line-height: 1.6;
+    color: #444;
+}
+
+.rules-scroll-area li {
+    margin-bottom: 5px;
+}
+
+.rules-scroll-area hr {
+    margin: 25px 0;
+    border: 0;
+    border-top: 1px solid #eee;
+}
+
+.rules-story {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.rules-story ul {
+    list-style: none;
+    padding-left: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #aaa;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+/* Responsive tweaks for very small screens */
+@media (max-height: 600px) {
+    header { padding: 5px 10px; }
+    header h1 { font-size: 1rem; }
+    .player-area { padding: 5px; }
+    .card { width: 30px; height: 30px; font-size: 0.8em; }
+    .hand { min-height: 40px; }
+}
+
+</style>
+<script>
+// 游戏常量
+const BOARD_SIZE = 10;
+const INITIAL_HAND_SIZE = 11;
+const CELL_COLORS = ['yellow', 'brown', 'blue', 'green'];
+const CARD_COLORS = ['yellow', 'brown', 'blue', 'green', 'red'];
+
+// 游戏状态
+let state = {
+    currentLang: 'en',
+    board: [],
+    currentPlayer: 1,
+    round: 1,
+    selectedCardIndex: null,
+    discardedCard: null,
+    lastMove: null, // 新增：记录最后一次落子的位置 {row, col}
+    gameActive: true,
+    placedThisTurn: false, // 新增：记录本回合是否已放置棋子
+    isAIEnabled: true, // 新增：是否开启AI托管
+    deck: [], // 新增牌堆
+    players: {
+        1: { name: '玩家 1 黑色', hand: [] },
+        2: { name: '玩家 2 白色', hand: [] }
+    },
+    aiPlannedCardIndex: null // 记录极大极小法选中的最佳落子手牌索引
+};
+
+// 多语言配置
+const i18n = {
+    zh: {
+        gameTitle: "《 九阶文明 》",
+        currentPlayer: "当前回合",
+        p1Name: "玩家 1",
+        p2Name: "玩家 2",
+        round: "回合数",
+        deckRemaining: "牌堆剩余",
+        p1ScoreLabel: "黑棋玩家得分：",
+        p2ScoreLabel: "白棋玩家得分：",
+        aiControl: "电脑托管白色玩家",
+        rulesBtn: "游戏说明",
+        restartBtn: "重新开始",
+        p1HandLabel: "黑色玩家 1 手牌",
+        p2HandLabel: "白色玩家 2 手牌",
+        discardLabel: "丢弃区",
+        modalClose: "关闭",
+        gameOverTitle: "游戏结束！",
+        p1Win: "玩家 1 (黑棋) 获胜！",
+        p2Win: "玩家 2 (白棋) 获胜！",
+        draw: "平局！",
+        scoreDetail: "最终得分 - 黑棋: {s1}, 白棋: {s2}",
+        alertPlaced: "本回合已经放置过棋子了，请丢弃手牌以结束回合。",
+        alertSelectCard: "请先选择一张手牌！",
+        alertRedOnly: "覆盖失败！只有红色手牌可以覆盖对手的棋子。",
+        alertRedHigher: "覆盖失败！红色手牌数值 ({v1}) 必须高于对方的牌数值 ({v2})。",
+        alertRedSupport: "覆盖失败！要求目标格四周有己方且数值相同或相邻的棋子。",
+        alertInvalidMove: "落子失败！请检查：\n1. 是否颜色相同且数值匹配 (针对1-3分格子)\n2. 是否颜色相同且相邻有数值相同或相邻的己方棋子\n3. 红色手牌覆盖对方棋子需数值更高且相邻有己方棋子",
+        rulesHtml: `
+            <h1>📜 《九阶文明》游戏说明书</h1>
+            <p><strong>《九阶文明》</strong> 是一款融合了空间占领、数值博弈与手牌管理的双人(或多人)抽象策略游戏。</p>
+            <div class="rules-story">
+                <p>颜色代表：黄色-平原, 绿色-森林, 蓝色-河流, 棕色-山川, 红色-战争</p>
+            </div>
+            <hr>
+            <h3>1. 游戏组件</h3>
+            <ul>
+                <li><strong>星图 (棋盘)</strong>：10x10 网格，四种基础颜色。</li>
+                <li><strong>文明序列 (手牌)</strong>：8组黄牌 (1-9)、4组绿牌 (1-9)、4组蓝牌 (1-5)、4组棕牌 (5-9)   、2组红色 (5-9)。</li>
+            </ul>
+            <hr>
+            <h3>2. 回合流程</h3>
+            <p>1. 抓2张牌；2. 放置最多1张牌；3. 弃牌至手牌 ≤ 11张。</p>
+            <hr>
+            <h3>3. 落子规则</h3>
+            <ul>
+                <li><strong>初始占领</strong>：颜色与数值均匹配。</li>
+                <li><strong>扩张连通</strong>：放置在己方四周，数值相同或相邻(±1)。</li>
+                <li><strong>降维覆盖</strong>：红色牌可覆盖对手，需数值更大且四周有己方支撑。</li>
+            </ul>
+            <hr>
+            <h3>4. 得分与结算</h3>
+            <p><strong>连通块法则</strong>：连通块内必须包含比该棋子小的所有数值才能得分。</p>
+        `
+    },
+    en: {
+        gameTitle: "Civilization IX",
+        currentPlayer: "Current Turn",
+        p1Name: "Player 1",
+        p2Name: "Player 2",
+        round: "Round",
+        deckRemaining: "Deck",
+        p1ScoreLabel: "Black Score:",
+        p2ScoreLabel: "White Score:",
+        aiControl: "AI Control White Player",
+        rulesBtn: "Rules",
+        restartBtn: "Restart",
+        p1HandLabel: "Black Player 1 Hand",
+        p2HandLabel: "White Player 2 Hand",
+        discardLabel: "Discard",
+        modalClose: "Close",
+        gameOverTitle: "Game Over!",
+        p1Win: "Player 1 (Black) Wins!",
+        p2Win: "Player 2 (White) Wins!",
+        draw: "It's a Draw!",
+        scoreDetail: "Final Score - Black: {s1}, White: {s2}",
+        alertPlaced: "You have already placed a piece this turn. Please discard to end your turn.",
+        alertSelectCard: "Please select a card first!",
+        alertRedOnly: "Cover failed! Only red cards can cover opponent's pieces.",
+        alertRedHigher: "Cover failed! Red card value ({v1}) must be higher than the target piece ({v2}).",
+        alertRedSupport: "Cover failed! Target cell must be adjacent to your existing piece with same or adjacent value.",
+        alertInvalidMove: "Invalid move! Please check:\n1. Match color and value (for 1-3 point cells)\n2. Match color and adjacent to your piece with same or adjacent value\n3. Red card cover needs higher value and your support piece nearby",
+        rulesHtml: `
+            <h1>📜 Civilization IX Manual</h1>
+            <p><strong>Civilization IX</strong> is a 2-player abstract strategy game combining space occupation and hand management.</p>
+            <div class="rules-story">
+                <p>Colors: Yellow-Plains, Green-Forest, Blue-River, Brown-Mountain, Red-War</p>
+            </div>
+            <hr>
+            <h3>1. Components</h3>
+            <ul>
+                <li><strong>Star Map (Board)</strong>: 10x10 grid with 4 base colors.</li>
+                <li><strong>Civilization (Hand)</strong>: 8 sets of yellow cards (1-9), 4 sets of green cards (1-9), 4 sets of blue cards (1-5), 4 sets of brown cards (5-9),  4 sets of red cards (5-9).</li>
+            </ul>
+            <hr>
+            <h3>2. Turn Flow</h3>
+            <p>1. Draw 2 cards; 2. Place up to 1 card; 3. Discard until hand ≤ 11.</p>
+            <hr>
+            <h3>3. Placement Rules</h3>
+            <ul>
+                <li><strong>Initial</strong>: Match card color and cell color, and value.</li>
+                <li><strong>Expansion</strong>: Match color. Must be adjacent to your existing piece. Value must be same or adjacent (±1).</li>
+                <li><strong>Overdrive (Cover)</strong>: <strong>Red cards only</strong>. Can cover opponent's piece if:
+                    <ul>
+                        <li>Red card value is <strong>higher</strong> than opponent's piece.</li>
+                        <li>Must be adjacent to your existing piece with same or adjacent (±1) value.</li>
+                    </ul>
+                </li>
+            </ul>
+            <hr>
+            <h3>4. Scoring</h3>
+            <p><strong>Chain Scoring Rule</strong>: Connected pieces form a "Civilization Chain". A piece scores only if the chain contains <strong>all values smaller than it</strong>.</p>
+        `
+    }
+};
+
+// DOM 元素
+const boardEl = document.getElementById('board');
+const p1HandEl = document.getElementById('p1-hand');
+const p2HandEl = document.getElementById('p2-hand');
+const turnIndicatorEl = document.getElementById('current-player-name');
+const roundIndicatorEl = document.getElementById('round-number');
+const restartBtn = document.getElementById('restart-btn');
+const discardSquareEl = document.getElementById('discard-square');
+const discardContentEl = document.getElementById('discard-content');
+const p1Area = document.getElementById('player1-area');
+const p2Area = document.getElementById('player2-area');
+const p1CountEl = document.getElementById('p1-hand-count');
+const p2CountEl = document.getElementById('p2-hand-count');
+const p1ScoreEl = document.getElementById('p1-score');
+const p2ScoreEl = document.getElementById('p2-score');
+const deckCountEl = document.getElementById('deck-count');
+const aiToggleEl = document.getElementById('ai-toggle');
+const rulesBtn = document.getElementById('rules-btn');
+const rulesModal = document.getElementById('rules-modal');
+const rulesModalClose = document.getElementById('rules-modal-close');
+
+// 语言切换处理
+const langBtns = document.querySelectorAll('.lang-btn');
+langBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const lang = btn.dataset.lang;
+        if (state.currentLang === lang) return;
+        
+        state.currentLang = lang;
+        langBtns.forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+        updateLanguageUI();
+    });
+});
+
+function updateLanguageUI() {
+    const t = i18n[state.currentLang];
+    
+    // 更新左侧边栏
+    document.querySelector('.sidebar-top h1').textContent = t.gameTitle;
+    document.querySelector('.stat-item:nth-child(1) .label').textContent = t.currentPlayer;
+    document.querySelector('.stat-item:nth-child(2) .label').textContent = t.round;
+    document.querySelector('.stat-item:nth-child(3) .label').textContent = t.deckRemaining;
+    
+    document.querySelector('.score-card.p1 .player-label').textContent = t.p1ScoreLabel;
+    document.querySelector('.score-card.p2 .player-label').textContent = t.p2ScoreLabel;
+    
+    document.querySelector('.ai-control label').lastChild.textContent = t.aiControl;
+    rulesBtn.textContent = t.rulesBtn;
+    restartBtn.textContent = t.restartBtn;
+    
+    // 更新手牌区域标签
+    document.querySelector('#player1-area .hand-label').textContent = t.p1HandLabel;
+    document.querySelector('#player2-area .hand-label').textContent = t.p2HandLabel;
+    
+    // 更新丢弃区标签
+    document.querySelector('.discard-label').textContent = t.discardLabel;
+    
+    // 更新规则说明模态框
+    document.querySelector('.rules-scroll-area').innerHTML = t.rulesHtml;
+    
+    // 更新右侧规则栏
+    const rulesSidebar = document.querySelector('.rules-sidebar');
+    if (state.currentLang === 'en') {
+        rulesSidebar.innerHTML = `
+            <div class="game-rules">
+                <section class="rules-section">
+                    <h3>Turn Flow</h3>
+                    <ol>
+                        <li>Draw 2 cards </li>
+                        <li>Place 1 card (optional)</li>
+                        <li>Discard until hand ≤ 11</li>
+                    </ol>
+                </section>
+                <section class="rules-section">
+                    <h3>ending conditions</h3>
+                    <ul>
+                        <li>The game ends when both sides have zero hands.</li>
+                        <li>the player with the highest score wins.</li>
+                    </ul>
+                </section>                
+                <section class="rules-section">
+                    <h3>Placement</h3>
+                    <ul>
+                        <li><strong>Initial</strong>: Match color & value.</li>
+                        <li><strong>Expansion</strong>: Adjacent, value same or ±1, match color.</li>
+                        <li><strong>Overdrive</strong>: Red only. Value > opponent, and must be adjacent to your existing piece with same or adjacent (±1) value.</li>
+                    </ul>
+                </section>
+                <section class="rules-section">
+                    <h3>Scoring</h3>
+                    <ul>
+                        <li>Sum of valid piece values.</li>
+                        <li><strong>Valid</strong>: A piece scores only if the chain ( Connected pieces form a "Chain") contains all values smaller than it.</li>
+                    </ul>
+                </section>
+            </div>
+        `;
+    } else {
+        // 恢复中文规则栏（简化逻辑，直接替换 HTML）
+        rulesSidebar.innerHTML = `
+            <div class="game-rules">
+                <section class="rules-section">
+                    <h3>回合流程</h3>
+                    <ol>
+                        <li>抓2张牌</li>
+                        <li>放置1张牌到棋盘（符合规则）</li>
+                        <li>丢弃1张牌（如无牌放置，则丢弃2张）</li>
+                    </ol>
+                </section>
+                <section class="rules-section">
+                    <h3>落子规则</h3>
+                    <ul>
+                        <li><strong>初始占领</strong>：手牌与格子颜色与数值均相同。</li>
+                        <li><strong>扩张连通</strong>：放置在己方四周，与己方棋子数值相同或相邻(±1)，与格子颜色相同。</li>
+                        <li><strong>降维覆盖</strong>：<strong>仅限红色手牌</strong>。数值需大于对手且四周有己方棋子(数值相同或相邻)可将对手牌覆盖。</li>
+                    </ul>
+                </section>
+                <section class="rules-section">
+                    <h3>结束条件</h3>
+                    <ul>
+                        <li>牌堆耗尽，双方手牌为0</li>
+                        <li>得分高者获胜</li>
+                    </ul>
+                </section>                
+                <section class="rules-section">
+                    <h3>得分算法</h3>
+                    <ul>
+                        <li>得分为所有有效棋子数值之和。</li>
+                        <li><strong>有效校验</strong>：该棋子连接的己方棋子中包含所有比该棋子数值小的<strong>所有</strong>数值（如4分需有1,2,3）。</li>
+                    </ul>
+                </section>
+            </div>
+        `;
+    }
+
+    // 重新渲染当前状态文本
+    updateUI();
+}
+
+
+
+// 监听AI开关
+aiToggleEl.addEventListener('change', (e) => {
+    state.isAIEnabled = e.target.checked;
+    renderHands(); // 立即更新手牌显示（隐藏或显示）
+    
+    // 如果轮到玩家2且刚刚开启了AI，立即执行
+    if (state.currentPlayer === 2 && state.isAIEnabled && state.gameActive) {
+        runAIAction();
+    }
+});
+
+// 游戏说明弹窗逻辑
+rulesBtn.addEventListener('click', () => {
+    rulesModal.classList.remove('hidden');
+});
+
+rulesModalClose.addEventListener('click', () => {
+    rulesModal.classList.add('hidden');
+});
+
+// 点击模态框背景关闭
+rulesModal.addEventListener('click', (e) => {
+    if (e.target === rulesModal) {
+        rulesModal.classList.add('hidden');
+    }
+});
+
+// 辅助函数：生成随机整数 [min, max]
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// 初始化牌堆
+function initDeck() {
+    const deck = [];
+    const config = [
+        { color: 'yellow', groups: 8 , minv: 1, maxv: 9},      
+        { color: 'green', groups: 4 ,minv: 1, maxv: 9},       
+        { color: 'blue', groups: 4 ,minv: 1, maxv: 5},
+        { color: 'brown', groups: 4 , minv: 4,maxv: 9},        
+        { color: 'red', groups: 2 , minv: 5, maxv: 9},
+    ];
+
+    config.forEach(item => {
+        for (let g = 0; g < item.groups; g++) {
+            for (let v = item.minv; v <= item.maxv; v++) {
+                deck.push({ color: item.color, value: v });
+            }
+        }
+    });
+
+    // 洗牌 (Fisher-Yates)
+    for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    
+    return deck;
+}
+
+// 初始化游戏
+function initGame() {
+    // 初始化牌堆
+    state.deck = initDeck();
+
+    // 初始化棋盘
+    state.board = Array(BOARD_SIZE).fill(null).map(() => 
+        Array(BOARD_SIZE).fill(null).map(() => ({
+            owner: null,
+            color: CELL_COLORS[Math.floor(Math.random() * CELL_COLORS.length)],
+            value: 0, // 默认为0
+            pieceColor: null,
+            pieceValue: null
+        }))
+    );
+
+    // 随机选择20个格子设为1-3，且颜色固定
+    const colorForValue1 = ['yellow', 'blue', 'green'];
+    let count = 0;
+    while (count < 20) {
+        const r = Math.floor(Math.random() * BOARD_SIZE);
+        const c = Math.floor(Math.random() * BOARD_SIZE);
+        if (state.board[r][c].value === 0) {
+            state.board[r][c].value = getRandomInt(1, 3);
+            state.board[r][c].color = colorForValue1[count % 3] || 'yellow';
+            count++;
+        }
+    }
+
+    // 初始化手牌：从牌堆中抽取 INITIAL_HAND_SIZE 张牌
+    state.players[1].hand = [];
+    state.players[2].hand = [];
+    
+    for (let i = 0; i < INITIAL_HAND_SIZE; i++) {
+        drawCard(1);
+        drawCard(2);
+    }
+    // 先手玩家（玩家 1）多抓一张牌,暂时取消
+    drawCard(1);
+    drawCard(1);    
+
+    state.currentPlayer = 1;
+    state.round = 1;
+    state.selectedCardIndex = null;
+    state.discardedCard = null;
+    state.lastMove = null;
+    state.placedThisTurn = false;
+    state.gameActive = true;
+
+    // 渲染
+    renderBoard();
+    renderHands();
+    renderDiscardSquare();
+    updateUI();
+}
+
+// 辅助函数：生成一张随机卡牌
+function generateRandomCard() {
+    return {
+        color: CARD_COLORS[Math.floor(Math.random() * CARD_COLORS.length)],
+        value: getRandomInt(1, 9) // 数值范围改为 1-9
+    };
+}
+
+// 渲染棋盘
+function renderBoard() {
+    boardEl.innerHTML = '';
+    const selectedCard = state.selectedCardIndex !== null ? state.players[state.currentPlayer].hand[state.selectedCardIndex] : null;
+
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            const cellData = state.board[r][c];
+            const cell = document.createElement('div');
+            
+            // 添加基础类和颜色类
+            cell.className = `cell ${cellData.color}`;
+            cell.dataset.row = r;
+            cell.dataset.col = c;
+
+            // 检查并添加最后落子的高亮提示
+            if (state.lastMove && state.lastMove.row === r && state.lastMove.col === c) {
+                cell.classList.add('last-move');
+            }
+
+            // 检查并添加合法落子位置的高亮提示
+            if (selectedCard && isValidMove(r, c, selectedCard)) {
+                cell.classList.add('highlight-valid');
+            }
+            
+            // 显示数值
+            // 创建一个 span 来显示数字，确保它在底层
+            const numberSpan = document.createElement('span');
+            numberSpan.className = 'cell-number';
+            // 只有数值为0时才不显示
+            numberSpan.textContent = cellData.value === 0 ? '' : cellData.value.toString();
+            cell.appendChild(numberSpan);
+            
+            // 始终添加点击事件，以便处理覆盖逻辑
+            cell.addEventListener('click', () => handleCellClick(r, c));
+            
+            // 放置棋子
+            if (cellData.owner) {
+                const piece = document.createElement('div');
+                piece.className = `piece p${cellData.owner} ${cellData.pieceColor}`;
+                // 显示棋子的数值
+                piece.textContent = cellData.pieceValue;
+                
+                cell.appendChild(piece);
+                cell.classList.add('has-piece');
+            }
+            
+            boardEl.appendChild(cell);
+        }
+    }
+}
+
+// 抽取落子合法性校验逻辑 (支持传入自定义棋盘和玩家，用于 AI 模拟)
+function isValidMove(row, col, card, board = state.board, playerId = state.currentPlayer) {
+    const cell = board[row][col];
+    const opponent = playerId === 1 ? 2 : 1;
+    
+    // 覆盖对手棋子的规则：仅限红色手牌，且数值必须高于对方
+    if (cell.owner === opponent) {
+        // 必须是红色手牌
+        if (card.color !== 'red') return false;
+        
+        // 必须数值高于对方
+        if (card.value <= cell.pieceValue) return false;
+        
+        // 且要求目标格四周有己方数值相同或相邻的棋子
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        for (const [dr, dc] of directions) {
+            const nr = row + dr;
+            const nc = col + dc;
+            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                const neighbor = board[nr][nc];
+                if (neighbor.owner === playerId) {
+                    if (Math.abs(neighbor.pieceValue - card.value) <= 1) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    } 
+    
+    // 普通落子检查：该位置是否已有棋子
+    if (cell.owner !== null) return false;
+
+    // 规则一：手牌放置在棋盘上颜色相同的格子，且手牌和格子数值相同
+    if (card.color === cell.color && card.value === cell.value) {
+        return true;
+    } 
+
+    // 规则二：手牌放置在和棋盘颜色相同的格子，且格子数值为0，且格子相邻的格子存在己方手牌，且己方手牌的数值和放置的手牌数值相邻
+    if (card.color === cell.color) {
+        const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+        for (const [dr, dc] of directions) {
+            const nr = row + dr;
+            const nc = col + dc;
+            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                const neighbor = board[nr][nc];
+                if (neighbor.owner === playerId) {
+                    // 支持相邻数值或相同数值
+                    if (Math.abs(neighbor.pieceValue - card.value) <= 1) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+// 渲染手牌
+function renderHands() {
+    renderHand(1, p1HandEl);
+    renderHand(2, p2HandEl);
+    
+    // 更新手牌计数
+    p1CountEl.textContent = state.players[1].hand.length;
+    p2CountEl.textContent = state.players[2].hand.length;
+}
+
+function renderHand(playerId, container) {
+    container.innerHTML = '';
+    const hand = state.players[playerId].hand;
+    
+    // 如果是玩家2且开启了AI托管，不显示牌面
+    const shouldHideHand = playerId === 2 && state.isAIEnabled;
+    
+    hand.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        
+        if (shouldHideHand) {
+            // AI托管时显示背面样式
+            cardEl.className = `card ai-hidden`;
+            cardEl.textContent = '?';
+            container.appendChild(cardEl);
+            return;
+        }
+
+        // 手牌现在有颜色属性
+        cardEl.className = `card ${card.color}`;
+        
+        // 显示数字
+        cardEl.textContent = card.value;
+        
+        // 只有当前玩家可以点击自己的手牌
+        if (playerId === state.currentPlayer && state.gameActive) {
+            cardEl.addEventListener('click', () => selectCard(index));
+            if (state.selectedCardIndex === index) {
+                cardEl.classList.add('selected');
+            }
+        } else {
+            // 非当前回合玩家的手牌，或者不是自己的手牌
+            // 对方的手牌，如果是本地双人游戏，明牌显示也可以
+            // 这里我们保持原样，或者可以考虑是否隐藏对方手牌内容？
+            // 既然是同屏桌游，通常是明牌或者点击查看，这里简单起见明牌显示
+            if (playerId !== state.currentPlayer) {
+                cardEl.style.opacity = '0.7';
+                cardEl.style.cursor = 'default';
+            }
+        }
+        
+        container.appendChild(cardEl);
+    });
+}
+
+// 更新 UI 状态
+function updateUI() {
+    const t = i18n[state.currentLang];
+    turnIndicatorEl.textContent = state.currentPlayer === 1 ? t.p1Name : t.p2Name;
+    turnIndicatorEl.className = 'value ' + (state.currentPlayer === 1 ? 'p1' : 'p2');
+    roundIndicatorEl.textContent = state.round;
+    deckCountEl.textContent = state.deck.length;
+
+    if (state.currentPlayer === 1) {
+        p1Area.classList.add('active');
+        p2Area.classList.remove('active');
+    } else {
+        p1Area.classList.remove('active');
+        p2Area.classList.add('active');
+    }
+
+    const scores = calculateScores();
+    p1ScoreEl.textContent = scores[1];
+    p2ScoreEl.textContent = scores[2];
+
+    checkGameOver(scores);
+}
+
+// 检查游戏是否结束
+function checkGameOver(scores) {
+    if (!state.gameActive) return;
+    if (state.players[1].hand.length === 0 && state.players[2].hand.length === 0) {
+        state.gameActive = false;
+        const t = i18n[state.currentLang];
+        
+        let resultMsg = "";
+        if (scores[1] > scores[2]) {
+            resultMsg = t.p1Win;
+        } else if (scores[2] > scores[1]) {
+            resultMsg = t.p2Win;
+        } else {
+            resultMsg = t.draw;
+        }
+        
+        const detailMsg = t.scoreDetail.replace('{s1}', scores[1]).replace('{s2}', scores[2]);
+        showModal(`<h2>${t.gameOverTitle}</h2><p>${resultMsg}</p><p>${detailMsg}</p>`);
+    }
+}
+
+// 弹窗提示
+const messageModal = document.getElementById('message-modal');
+const modalText = document.getElementById('modal-text');
+const modalCloseBtn = document.getElementById('modal-close-btn');
+
+function showModal(content) {
+    const t = i18n[state.currentLang];
+    modalText.innerHTML = content;
+    modalCloseBtn.textContent = t.modalClose;
+    messageModal.classList.remove('hidden');
+}
+
+modalCloseBtn.addEventListener('click', () => {
+    messageModal.classList.add('hidden');
+});
+
+// 计算双方分数的逻辑 (支持传入自定义棋盘用于 AI 评估)
+function calculateScores(customBoard = null) {
+    const boardToUse = customBoard || state.board;
+    const scores = { 1: 0, 2: 0 };
+    const visited = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(false));
+
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            const cell = boardToUse[r][c];
+            if (cell.owner && !visited[r][c]) {
+                const component = [];
+                const valueSet = new Set();
+                const owner = cell.owner;
+                
+                // BFS 查找整个连通块
+                const queue = [[r, c]];
+                visited[r][c] = true;
+                
+                while (queue.length > 0) {
+                    const [currR, currC] = queue.shift();
+                    const currCell = boardToUse[currR][currC];
+                    component.push(currCell);
+                    valueSet.add(currCell.pieceValue);
+                    
+                    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                    for (const [dr, dc] of directions) {
+                        const nr = currR + dr;
+                        const nc = currC + dc;
+                        if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                            const neighbor = boardToUse[nr][nc];
+                            if (neighbor.owner === owner && !visited[nr][nc]) {
+                                visited[nr][nc] = true;
+                                queue.push([nr, nc]);
+                            }
+                        }
+                    }
+                }
+                
+                // 优化得分计算：先找到最大连续值 X
+                let maxContinuousValue = 0;
+                while (valueSet.has(maxContinuousValue + 1)) {
+                    maxContinuousValue++;
+                }
+                
+                // 连通块得分法则：数值为 v 的棋子得分，前提是块内包含 1 到 v-1
+                // 也就是说 pieceValue <= maxContinuousValue + 1 的棋子都能得分
+                for (const piece of component) {
+                    if (piece.pieceValue <= maxContinuousValue + 1) {
+                        scores[owner] += piece.pieceValue;
+                    }
+                }
+            }
+        }
+    }
+    return scores;
+}
+
+// 渲染丢弃区
+function renderDiscardSquare() {
+    discardContentEl.innerHTML = '';
+    if (state.discardedCard) {
+        const cardEl = document.createElement('div');
+        cardEl.className = `card ${state.discardedCard.color}`;
+        cardEl.textContent = state.discardedCard.value;
+        discardContentEl.appendChild(cardEl);
+    }
+}
+
+// 丢弃逻辑
+discardSquareEl.addEventListener('click', () => {
+    if (!state.gameActive) return;
+    if (state.selectedCardIndex === null) {
+        alert("请先选择一张要丢弃的手牌！");
+        return;
+    }
+
+    const card = state.players[state.currentPlayer].hand[state.selectedCardIndex];
+    
+    // 1. 更新丢弃区
+    state.discardedCard = { ...card };
+    
+    // 2. 移除手牌
+    state.players[state.currentPlayer].hand.splice(state.selectedCardIndex, 1);
+    state.selectedCardIndex = null;
+    
+    // 3. 渲染
+    renderHands();
+    renderDiscardSquare();
+
+    // 3. 检查回合结束条件：手牌数不大于 初始手牌数
+    if (state.players[state.currentPlayer].hand.length <= INITIAL_HAND_SIZE) {
+        endTurn();
+    } else {
+        updateUI(); // 实时更新分数和UI
+        // alert(`已丢弃。当前手牌数: ${state.players[state.currentPlayer].hand.length}，还需丢弃或放置直到手牌数 <= 12 以结束回合。`);
+    }
+});
+
+// 交互逻辑：选择手牌
+function selectCard(index) {
+    if (!state.gameActive) return;
+    
+    // 如果点击已选中的，取消选中
+    if (state.selectedCardIndex === index) {
+        state.selectedCardIndex = null;
+    } else {
+        state.selectedCardIndex = index;
+    }
+    renderHands(); // 重新渲染以更新选中样式
+    renderBoard(); // 重新渲染棋盘以显示/隐藏高亮
+}
+
+// 交互逻辑：点击棋盘
+function handleCellClick(row, col) {
+    if (!state.gameActive) return;
+    const t = i18n[state.currentLang];
+    
+    if (state.placedThisTurn) {
+        alert(t.alertPlaced);
+        return;
+    }
+    if (state.selectedCardIndex === null) {
+        alert(t.alertSelectCard);
+        return;
+    }
+    
+    const card = state.players[state.currentPlayer].hand[state.selectedCardIndex];
+    
+    if (!isValidMove(row, col, card)) {
+        const cell = state.board[row][col];
+        const opponent = state.currentPlayer === 1 ? 2 : 1;
+        
+        if (cell.owner === opponent) {
+            if (card.color !== 'red') {
+                alert(t.alertRedOnly);
+            } else if (card.value <= cell.pieceValue) {
+                alert(t.alertRedHigher.replace('{v1}', card.value).replace('{v2}', cell.pieceValue));
+            } else {
+                alert(t.alertRedSupport);
+            }
+        } else {
+            alert(t.alertInvalidMove);
+        }
+        return;
+    }
+    
+    // 放置棋子
+    placePiece(row, col);
+}
+
+// 放置棋子逻辑
+function placePiece(row, col) {
+    const card = state.players[state.currentPlayer].hand[state.selectedCardIndex];
+
+    // 1. 更新棋盘
+    state.board[row][col].owner = state.currentPlayer;
+    state.board[row][col].pieceValue = card.value; // 记录放置的数值
+    state.board[row][col].pieceColor = card.color; // 记录放置的颜色
+    
+    // 1.5 更新最后落子位置
+    state.lastMove = { row, col };
+    
+    // 2. 移除手牌
+    state.players[state.currentPlayer].hand.splice(state.selectedCardIndex, 1);
+    state.selectedCardIndex = null;
+    state.placedThisTurn = true; // 标记已放置
+    
+    // 3. 渲染更新
+    renderBoard();
+    renderHands();
+
+    // 3. 检查回合结束条件：手牌数不大于 手牌数
+    if (state.players[state.currentPlayer].hand.length <= INITIAL_HAND_SIZE) {
+        endTurn();
+    } else {
+        updateUI(); // 实时更新分数和UI
+    }
+}
+
+// --- AI 策略相关函数 ---
+
+// 评估函数：计算当前棋盘对特定玩家的价值
+function evaluateBoard(tempBoard, playerId) {
+    const scores = calculateScores(tempBoard);
+    let whitePieceCount = 0;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+            if (tempBoard[r][c].owner === 2) whitePieceCount++;
+        }
+    }
+    return (scores[2] - scores[1]) + whitePieceCount;
+}
+
+// 对抗性搜索算法：Minimax + Alpha-Beta 剪枝 + 启发式宽度限制
+function minimax(board, p1Hand, p2Hand, depth, alpha, beta, isMaximizing) {
+    // 递归终点：达到深度或双方手牌耗尽
+    if (depth === 0 || (p1Hand.length === 0 && p2Hand.length === 0)) {
+        return evaluateBoard(board, 2);
+    }
+
+    const currentPlayer = isMaximizing ? 2 : 1;
+    const currentHand = isMaximizing ? p2Hand : p1Hand;
+
+    // 收集所有合法落子并进行初步评估
+    const possibleMoves = [];
+    for (let i = 0; i < currentHand.length; i++) {
+        const card = currentHand[i];
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (isValidMove(r, c, card, board, currentPlayer)) {
+                    // 简单的即时评估
+                    const cell = board[r][c];
+                    const prevOwner = cell.owner;
+                    const prevPieceValue = cell.pieceValue;
+                    const prevPieceColor = cell.pieceColor;
+
+                    cell.owner = currentPlayer;
+                    cell.pieceValue = card.value;
+                    cell.pieceColor = card.color;
+                    
+                    const immediateEval = evaluateBoard(board, 2);
+                    possibleMoves.push({ r, c, handIndex: i, eval: immediateEval });
+
+                    // 回溯
+                    cell.owner = prevOwner;
+                    cell.pieceValue = prevPieceValue;
+                    cell.pieceColor = prevPieceColor;
+                }
+            }
+        }
+    }
+
+    // 如果没有任何合法落子，视为跳过本轮，继续模拟下一层
+    if (possibleMoves.length === 0) {
+        return minimax(board, p1Hand, p2Hand, depth - 1, alpha, beta, !isMaximizing);
+    }
+
+    // 启发式剪枝：限制搜索宽度
+    const searchWidth = depth > 2 ? 3 : 5;
+    if (isMaximizing) {
+        possibleMoves.sort((a, b) => b.eval - a.eval);
+        let maxEval = -Infinity;
+        for (const move of possibleMoves.slice(0, searchWidth)) {
+            const card = currentHand[move.handIndex];
+            const cell = board[move.r][move.c];
+            const prevOwner = cell.owner;
+            const prevPieceValue = cell.pieceValue;
+            const prevPieceColor = cell.pieceColor;
+
+            cell.owner = 2;
+            cell.pieceValue = card.value;
+            cell.pieceColor = card.color;
+
+            const nextP2Hand = [...p2Hand];
+            nextP2Hand.splice(move.handIndex, 1);
+
+            const evaluation = minimax(board, p1Hand, nextP2Hand, depth - 1, alpha, beta, false);
+            maxEval = Math.max(maxEval, evaluation);
+            alpha = Math.max(alpha, evaluation);
+
+            cell.owner = prevOwner;
+            cell.pieceValue = prevPieceValue;
+            cell.pieceColor = prevPieceColor;
+
+            if (beta <= alpha) break; // Beta 剪枝
+        }
+        return maxEval;
+    } else {
+        possibleMoves.sort((a, b) => a.eval - b.eval); // 对手会选对 AI 最不利的
+        let minEval = Infinity;
+        for (const move of possibleMoves.slice(0, searchWidth)) {
+            const card = currentHand[move.handIndex];
+            const cell = board[move.r][move.c];
+            const prevOwner = cell.owner;
+            const prevPieceValue = cell.pieceValue;
+            const prevPieceColor = cell.pieceColor;
+
+            cell.owner = 1;
+            cell.pieceValue = card.value;
+            cell.pieceColor = card.color;
+
+            const nextP1Hand = [...p1Hand];
+            nextP1Hand.splice(move.handIndex, 1);
+
+            const evaluation = minimax(board, nextP1Hand, p2Hand, depth - 1, alpha, beta, true);
+            minEval = Math.min(minEval, evaluation);
+            beta = Math.min(beta, evaluation);
+
+            cell.owner = prevOwner;
+            cell.pieceValue = prevPieceValue;
+            cell.pieceColor = prevPieceColor;
+
+            if (beta <= alpha) break; // Alpha 剪枝
+        }
+        return minEval;
+    }
+}
+
+// AI 决策入口
+async function runAIAction() {
+    if (!state.isAIEnabled || state.currentPlayer !== 2 || !state.gameActive) return;
+
+    console.log("AI 开始深度思考 (Minimax 对抗搜索)...");
+    
+    let bestMove = null;
+    let maxEval = -Infinity;
+    
+    const p1Hand = state.players[1].hand;
+    const p2Hand = state.players[2].hand;
+    const tempBoard = state.board.map(row => row.map(cell => ({ ...cell })));
+
+    // 1. 收集并初步评估所有合法落子
+    const initialMoves = [];
+    for (let i = 0; i < p2Hand.length; i++) {
+        const card = p2Hand[i];
+        for (let r = 0; r < BOARD_SIZE; r++) {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                if (isValidMove(r, c, card, tempBoard, 2)) {
+                    const cell = tempBoard[r][c];
+                    const prevOwner = cell.owner;
+                    const prevPieceValue = cell.pieceValue;
+                    const prevPieceColor = cell.pieceColor;
+
+                    cell.owner = 2;
+                    cell.pieceValue = card.value;
+                    cell.pieceColor = card.color;
+                    
+                    const immediateEval = evaluateBoard(tempBoard, 2);
+                    initialMoves.push({ r, c, handIndex: i, eval: immediateEval });
+
+                    cell.owner = prevOwner;
+                    cell.pieceValue = prevPieceValue;
+                    cell.pieceColor = prevPieceColor;
+                }
+            }
+        }
+    }
+
+    if (initialMoves.length === 0) {
+        console.log("AI 无法落子，准备弃牌");
+        setTimeout(() => aiDiscard(), 600);
+        return;
+    }
+
+    // 2. 启发式剪枝 + Minimax
+    initialMoves.sort((a, b) => b.eval - a.eval);
+    const movesToExplore = initialMoves.slice(0, 10);
+
+    for (const move of movesToExplore) {
+        const card = p2Hand[move.handIndex];
+        const cell = tempBoard[move.r][move.c];
+        
+        const prevOwner = cell.owner;
+        const prevPieceValue = cell.pieceValue;
+        const prevPieceColor = cell.pieceColor;
+
+        cell.owner = 2;
+        cell.pieceValue = card.value;
+        cell.pieceColor = card.color;
+
+        const remainingP2Hand = [...p2Hand];
+        remainingP2Hand.splice(move.handIndex, 1);
+
+        // 深度设为 8，表示模拟后续 8 个回合（AI->对手->AI->对手）
+        const evaluation = minimax(tempBoard, p1Hand, remainingP2Hand, 8, -Infinity, Infinity, false);
+        
+        if (evaluation > maxEval) {
+            maxEval = evaluation;
+            bestMove = move;
+        }
+
+        cell.owner = prevOwner;
+        cell.pieceValue = prevPieceValue;
+        cell.pieceColor = prevPieceColor;
+    }
+
+    if (bestMove) {
+        console.log(`AI 选定最佳落子: 索引 ${bestMove.handIndex}, 位置 (${bestMove.r}, ${bestMove.c}), 预期评分: ${maxEval}`);
+        
+        await new Promise(resolve => setTimeout(resolve, 600));
+        state.selectedCardIndex = bestMove.handIndex;
+        placePiece(bestMove.r, bestMove.c);
+        
+        setTimeout(() => {
+            if (state.currentPlayer === 2 && state.gameActive && state.players[2].hand.length > INITIAL_HAND_SIZE) {
+                aiDiscard();
+            }
+        }, 600);
+    }
+}
+
+// AI 弃牌逻辑：保留模拟下棋时高分策略中用到的手牌，优先弃掉非高分策略中用到的重复的手牌
+function aiDiscard() {
+    if (!state.gameActive || state.currentPlayer !== 2) return;
+    
+    const hand = state.players[2].hand;
+    if (hand.length === 0) return;
+
+    const counts = {};
+    hand.forEach((card, index) => {
+        if (index === state.aiPlannedCardIndex) return;
+        if (card.color !== 'red') {
+            const key = `${card.color}-${card.value}`;
+            counts[key] = (counts[key] || 0) + 1;
+        }
+    });
+
+    let bestDiscardIndex = 0;
+    let maxWeight = -Infinity;
+
+    hand.forEach((card, index) => {
+        let weight = 0;
+        if (index === state.aiPlannedCardIndex) {
+            weight = -60;
+        } else if (card.color === 'red') {
+            weight = -20;
+        } else {
+            const key = `${card.color}-${card.value}`;
+            if (counts[key] > 1) {
+                weight += 10;
+            }
+            let canPlace = false;
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (isValidMove(r, c, card)) {
+                        canPlace = true;
+                        break;
+                    }
+                }
+                if (canPlace) break;
+            }
+            if (!canPlace) {
+                weight += 10;
+            }
+            weight += (10 - card.value);
+            randomWeight = Math.random() * 50 - 25;
+            weight += randomWeight;
+        }
+        if (weight > maxWeight) {
+            maxWeight = weight;
+            bestDiscardIndex = index;
+        }
+    });
+
+    const cardToDiscard = hand[bestDiscardIndex];
+    console.log(`AI 弃牌: ${cardToDiscard.color} ${cardToDiscard.value} (权重: ${maxWeight})`);
+
+    if (state.aiPlannedCardIndex !== null && bestDiscardIndex < state.aiPlannedCardIndex) {
+        state.aiPlannedCardIndex--;
+    } else if (bestDiscardIndex === state.aiPlannedCardIndex) {
+        state.aiPlannedCardIndex = null;
+    }
+    
+    state.discardedCard = { ...cardToDiscard };
+    state.players[2].hand.splice(bestDiscardIndex, 1);
+    state.selectedCardIndex = null;
+    
+    renderHands();
+    renderDiscardSquare();
+    
+    if (state.players[2].hand.length <= INITIAL_HAND_SIZE) {
+        state.aiPlannedCardIndex = null;
+        endTurn();
+    } else {
+        setTimeout(() => aiDiscard(), 100);
+    }
+}
+
+// 结束回合逻辑
+function endTurn() {
+    // 重置回合状态
+    state.placedThisTurn = false;
+    state.selectedCardIndex = null;
+    
+    // 切换玩家
+    state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
+    
+    if (state.currentPlayer === 1) {
+        state.round++;
+    }
+    
+    // 新回合开始：发一张牌，暂时取消
+    drawCard(state.currentPlayer);
+    drawCard(state.currentPlayer);    
+    
+    updateUI();
+    renderHands(); 
+
+    // 如果切换到了 AI 玩家，触发 AI 行动
+    if (state.currentPlayer === 2 && state.isAIEnabled) {
+        runAIAction();
+    }
+}
+
+// 修改发牌逻辑：从牌堆取牌
+function drawCard(playerId) {
+    // 当手牌数量大于等于20时，不抓牌
+    if (state.players[playerId].hand.length >= 20) return;
+    
+    if (state.deck.length > 0) {
+        state.players[playerId].hand.push(state.deck.pop());
+        sortHand(playerId);
+    }
+}
+
+// 手牌排序：按花色顺序和数值从小到大
+function sortHand(playerId) {
+    const colorOrder = {
+        'yellow': 1,
+        'brown': 2,
+        'blue': 3,
+        'green': 4,
+        'red': 5
+    };
+    
+    state.players[playerId].hand.sort((a, b) => {
+        if (colorOrder[a.color] !== colorOrder[b.color]) {
+            return colorOrder[a.color] - colorOrder[b.color];
+        }
+        return a.value - b.value;
+    });
+}
+
+// 重新开始
+restartBtn.addEventListener('click', () => {
+    if(confirm("确定要重新开始游戏吗？")) {
+        initGame();
+    }
+});
+
+// 启动
+initGame();
+updateLanguageUI();
+
+
+</script>
