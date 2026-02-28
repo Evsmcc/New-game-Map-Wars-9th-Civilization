@@ -1,0 +1,2859 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四国象棋之黑暗森林</title>
+    <style>
+        /* 消息提示样式 */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            pointer-events: none;
+        }
+        
+        .toast {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease-out;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        .toast.success {
+            background: rgba(76, 175, 80, 0.9);
+        }
+        
+        .toast.warning {
+            background: rgba(255, 152, 0, 0.9);
+        }
+        
+        .toast.error {
+            background: rgba(244, 67, 54, 0.9);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 游戏开始页面 -->
+    <div id="start-screen" class="start-screen">
+        <div class="start-container">
+            <h1 class="game-title">四国象棋之黑暗森林</h1>
+            <div class="start-buttons">
+                <button class="start-btn" onclick="startGame()">开始游戏</button>
+                <button class="rules-btn" onclick="showRules()">游戏规则</button>
+            </div>            
+
+
+            <!-- 游戏参数设置 -->
+            <div class="game-settings">
+                <h3>游戏设置</h3>
+                
+                <!-- AI强度设置 -->
+                <div class="setting-group">
+                    <label>红色电脑:</label>
+                    <select id="red-ai-level">
+                        <option value="elite">精英</option>
+                        <option value="normal" selected>一般</option>
+                        <option value="weak">智障</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <label>黄色电脑:</label>
+                    <select id="yellow-ai-level">
+                        <option value="elite">精英</option>
+                        <option value="normal" selected>一般</option>
+                        <option value="weak">智障</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <label>蓝色电脑:</label>
+                    <select id="blue-ai-level">
+                        <option value="elite">精英</option>
+                        <option value="normal" selected>一般</option>
+                        <option value="weak">智障</option>
+                    </select>
+                </div>
+                
+                <!-- 环境设置 -->
+                <div class="setting-group">
+                    <label>✡位数量:</label>
+                    <select id="star-quantity">
+                        <option value="rich">富饶</option>
+                        <option value="normal" selected>一般</option>
+                        <option value="poor">贫瘠</option>
+                    </select>
+                </div>
+                
+                <div class="setting-group">
+                    <label>🌲数量:</label>
+                    <select id="tree-quantity">
+                        <option value="dense">茂密</option>
+                        <option value="sparse" selected>一般</option>
+                        <option value="none">稀疏</option>
+                    </select>
+                </div>
+            </div>
+            
+
+        </div>
+    </div>
+
+    <!-- 游戏规则弹窗 -->
+    <div id="rules-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeRules()">&times;</span>
+            <h2>游戏规则</h2>
+            <div class="rules-content">
+<h3>基本规则（基本同象棋）</h3>
+<li>四人对战，轮流行动,每方有一个将，将死则失败</li>
+<li>通过吃子和占领星位获得资源, 资源可用于造兵</li>
+<li>棋子移动需要在视野范围内进行</li>
+
+<h3>资源系统</h3>
+<li>初始每方100点资源，可用于建造新棋子</li>
+<li>| 将 |每回合提供5点资源</li>
+<li>| 粮 |每回合提供2点资源</li>
+吃掉敌方棋子可获得对应的俘虏价值</li>
+
+<h3>地形介绍</h3>
+<li>✡ 的格子上可以添置新棋子</li>
+<li>⛰ 的格子为山地，不可消灭</li>
+
+<h3>中立棋子</h3>
+<li>| 🌲 |为中立棋子树木，可消灭</li>
+<li>| 🌾 |为中立棋子水稻，消灭可获得资源</li>
+
+<h3>视野范围</h3>
+<li>| 将 | 以自身为中心的5*5</li>
+<li>| 士 | 以自身为中心的3*3</li>
+<li>| 象 | 斜线5格</li>
+<li>| 车 | 直线3格</li>
+<li>| 马 | 日字格</li>
+<li>| 炮 | 直线1、3、5格</li>
+<li>| 卒 | 以自身为中心的3*3</li>
+<li>| 粮 | 以自身为中心的3*3</li>
+
+<h3>走棋方式（同象棋）</h3>
+<li>| 将 | 上下左右1格</li>
+<li>| 士 | 斜线1格</li>
+<li>| 象 | 田字格</li>
+<li>| 车 | 直线</li>
+<li>| 马 | 日字格</li>
+<li>| 炮 | 直线，格棋吃子</li>
+<li>| 卒 | 直线1格</li>
+<li>| 粮 | 无法移动</li>
+
+<h3>其它说明</h3>
+<li>点击棋子可查看棋子详细信息</li>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏主页面 -->
+    <div id="game-container" class="game-container" style="display: none;">
+        <div class="container">
+            <div class="chessboard" id="chessboard"></div>
+            <div class="game-info" id="game-info">
+                <div class="current-player" id="current-player">当前行动方: green</div>
+
+                <div class="resources" id="resources">
+                    <div class="resources-header">
+                        <h3>各方资源值</h3>
+                        <label class="cheat-checkbox">
+                            <input type="checkbox" id="reveal-map" onchange="toggleRevealMap(this)">
+                            开图作弊
+                        </label>
+                    </div>
+                    <div class="resource-values" id="resource-values"></div>
+                </div>
+                <div class="piece-info" id="piece-info">
+                    <h3>棋子说明</h3>
+                    <div id="info-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 消息提示容器 -->
+    <div class="toast-container" id="toast-container"></div>
+    <script>
+        // 消息提示函数
+        function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            container.appendChild(toast);
+            
+            // 自动消失
+            setTimeout(() => {
+                toast.style.animation = 'fadeOut 0.3s ease-out forwards';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, duration);
+        }
+        
+        // 重写alert函数，使其使用消息提示
+        window.alert = function(message) {
+            showToast(message, 'warning', 4000);
+        };
+    </script>
+</body>
+</html>
+
+
+<style>
+/* 基本布局 */
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+}
+
+/* 棋盘样式 */
+#chessboard {
+    display: grid;
+    grid-template-columns: repeat(30, 30px);
+    grid-template-rows: repeat(20, 30px);
+    gap: 1px;
+    background-color: #fff; /* 白色背景 */
+    border: 2px solid #000; /* 黑色边框 */
+}
+
+.cell {
+    width: 30px;
+    height: 30px;
+    background-color: #fff; /* 白色背景 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    border: 1px solid #c00; /* 红色网格线 */
+}
+
+.cell:nth-child(even) {
+    background-color: #fff; /* 白色背景 */
+}
+
+.cell:nth-child(odd) {
+    background-color: #fff; /* 白色背景 */
+}
+
+/* 棋子样式 */
+.piece {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 1;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* 选中棋子的高亮 */
+.selected {
+    background-color: #ff0 !important; /* 黄色 */
+}
+
+/* 可移动位置的高亮 */
+.move-highlight {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 255, 0.3); /* 半透明蓝色 */
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* 游戏信息区域 */
+#game-info {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 当前行动方 */
+.current-player {
+    background-color: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-weight: bold;
+    font-size: 18px;
+    text-align: center;
+}
+
+#info-content {
+    background-color: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.info-item {
+    margin-bottom: 15px;
+}
+
+.info-item h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.info-item p {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+/* 资源显示 */
+#resources {
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.resources-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.resources h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.cheat-checkbox {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    user-select: none;
+}
+
+.cheat-checkbox input[type="checkbox"] {
+    margin-right: 5px;
+    cursor: pointer;
+}
+
+.cheat-checkbox:hover {
+    color: #333;
+}
+
+#resource-values {
+    display: flex;
+    justify-content: space-between;
+}
+
+#resource-values div {
+    margin: 2px 0;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* 造兵界面 */
+#build-pieces {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.build-button {
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.build-button:hover {
+    background-color: #45a049;
+}
+
+/* 造兵区 */
+#build-area {
+    background-color: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.side-build-area {
+    margin-top: 5px;
+}
+
+.side-build-area h3 {
+    margin-top: 0;
+    font-size: 16px;
+}
+
+.build-piece {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    margin: 2px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* 开始页面样式 */
+.start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.start-container {
+    text-align: center;
+    color: white;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.game-title {
+    font-size: 48px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.game-subtitle {
+    font-size: 24px;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.start-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+.start-btn, .rules-btn {
+    padding: 12px 30px;
+    font-size: 16px;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    margin: 0 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.start-btn {
+    background: linear-gradient(45deg, #ff6b6b, #ff8787);
+    color: white;
+}
+
+.start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+}
+
+.rules-btn {
+    background: linear-gradient(45deg, #4ecdc4, #44a08d);
+    color: white;
+}
+
+.rules-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.6);
+}
+
+
+
+/* 游戏规则弹窗样式 */
+.modal {
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 80%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 20px;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+.rules-content h3 {
+    color: #333;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.rules-content ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.rules-content li {
+    margin: 5px 0;
+    color: #555;
+}
+
+.game-container {
+    display: block;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 游戏设置面板样式 */
+.game-settings {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 30px;
+    border-radius: 15px;
+    margin: 20px 0;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.game-settings h3 {
+    color: white;
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 24px;
+    text-align: center;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.setting-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 15px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.setting-group label {
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    flex: 1;
+    text-align: left;
+}
+
+.setting-group select {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    min-width: 120px;
+    text-align: center;
+}
+
+.setting-group select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 768px) {
+    .start-container {
+        padding: 20px;
+        margin: 20px;
+    }
+    
+    .game-title {
+        font-size: 36px;
+    }
+    
+    .game-subtitle {
+        font-size: 18px;
+    }
+    
+    .setting-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    
+    .setting-group label {
+        text-align: center;
+    }
+}
+</style>
+<script>
+class ChineseChessGame {
+    constructor(config = {}) {
+        // 游戏配置参数
+        this.config = {
+            aiLevels: {
+                red: config.aiLevels?.red || 'normal',
+                yellow: config.aiLevels?.yellow || 'normal',
+                blue: config.aiLevels?.blue || 'normal'
+            },
+            starQuantity: config.starQuantity || 'normal',
+            treeQuantity: config.treeQuantity || 'sparse'
+        };
+        this.board = [];
+        this.selectedPiece = null;
+        this.selectedRow = null;
+        this.selectedCol = null;
+        // 存储✡符号的位置
+        this.starPositions = [];
+        // 存储⛰符号的位置
+        this.mountainPositions = [];
+        // 存储🌲符号的位置
+        this.treePositions = [];
+        this.pieceInfo = {
+            'ju': { 
+                name: '车', 
+                description: '【车】横竖直线移动，无距离限制\n移动规则：直线任意格数，不能越过障碍\n吃子规则：直线方向上敌方棋子可吃\n视野范围：直线3格内可见\n行动消耗：4\n建造造价：120\n俘虏价值：50\n特殊能力：无' 
+            },
+            'ma': { 
+                name: '马', 
+                description: '【马】走日字，蹩马腿不影响\n移动规则：走"日"字格\n吃子规则："日"字格敌方棋子可吃掉\n视野范围：日字形视野\n行动消耗：1\n建造造价：90\n俘虏价值：30\n特殊能力：无' 
+            },
+            'xiang': { 
+                name: '象', 
+                description: '【象】走田字\n移动规则：走田字\n吃子规则：走田字敌方棋子可吃掉\n视野范围：斜线5格内可见\n行动消耗：2\n建造造价：90 \n俘虏价值：30\n特殊能力：无' 
+            },
+            'shi': { 
+                name: '士', 
+                description: '【士】同象棋士\n移动规则：斜线移动一格\n吃子规则：斜线1格的敌方棋子可吃掉\n视野范围：周围3×3格内可见\n行动消耗：0\n建造造价：80\n俘虏价值：20 \n特殊能力：无' 
+            },
+            'jiang': { 
+                name: '将', 
+                description: '【将】核心棋子，将死则失败\n移动规则：直线上下左右移动一格\n吃子规则：直线1格敌方棋子可吃掉\n视野范围：5×5格内可见\n行动消耗：0 \n建造造价：无法建造（初始自带）\n俘虏价值：300\n特殊能力：每回合增加5 ' 
+            },
+            'pao': { 
+                name: '炮', 
+                description: '【炮】隔山打牛\n移动规则：直线任意格数，不能越过障碍物\n吃子规则：必须隔一个棋子才能吃子\n视野范围：直线1、3、5格\n行动消耗：3 \n建造造价：100 \n俘虏价值：30 \n特殊能力：无' 
+            },
+            'zu': { 
+                name: '卒', 
+                description: '【卒】基础步兵，性价比最高\n移动规则：直线一格移动\n吃子规则：直线1格敌方棋子可吃掉\n视野范围：周围3×3格内可见\n行动消耗：0 \n建造造价：80 \n俘虏价值：20 \n特殊能力：无' 
+            },
+            'liang': { 
+                name: '粮', 
+                description: '【粮】提供资源产出\n移动规则：无法移动，固定位置\n吃子规则：无法主动吃子\n视野范围：周围3×3格内可见\n行动消耗：0 \n建造造价：150 \n俘虏价值：100 \n特殊能力：每回合为所属方提供2 ' 
+            },
+            'grain': { 
+                name: '🌾', 
+                description: '【🌾】自然生成的粮草，提供额外资源\n移动规则：无法移动，自然生成\n吃子规则：无法主动吃子，被任意方吃掉\n视野范围：周围3×3格内可见\n行动消耗：0 \n建造造价：无法建造（自然生成）\n俘虏价值：20 \n特殊能力：每100回合在✡位上自动生成' 
+            },
+            'tree': { 
+                name: '🌲', 
+                description: '【🌲】自然地形障碍，阻挡移动\n移动规则：无法移动，固定地形\n吃子规则：无法吃子，纯障碍物\n视野范围：周围3×3格内可见\n行动消耗：0 \n建造造价：无法建造（初始地形）\n俘虏价值：0 \n特殊能力：阻挡所有棋子移动，提供地形掩护'
+            }
+        };
+        // 初始化各方资源值
+        this.resources = {
+            'red': 100,
+            'green': 100,
+            'blue': 100,
+            'yellow': 100
+        };
+        
+        // 定义棋子价值
+        this.pieceValues = {
+            'zu': 20,
+            'ma': 30,
+            'pao': 30,
+            'ju': 50,
+            'jiang': 300,
+            'shi': 20,
+            'xiang': 30,
+            'liang': 100,
+            'tree': 0,
+            'grain': 20
+        };
+        
+        // 定义棋子行动消耗
+        this.moveCosts = {
+            'zu': 0,
+            'ma': 1,
+            'pao': 3,
+            'ju': 4,
+            'jiang': 0,
+            'shi': 0,
+            'xiang': 2,
+            'liang': 0,
+            'tree': 0,
+            'grain': 0
+        };
+        // 定义可造的棋子及其成本
+        this.buildablePieces = {
+            'zu': 80,
+            'pao': 100,
+            'ju': 120,
+            'ma': 90,
+            'xiang': 90,
+            'shi': 80,
+            'liang': 150
+        };
+
+        // 开图作弊开关
+        this.revealMap = false;
+
+        // ai开图概率
+        this.revealMapProbability = 0.1;
+        
+        // 定义各棋子类型的视野范围映射
+        this.visionRanges = {
+            'zu': [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
+            'ma': [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [0, 0], [1, -2], [1, 2], [2, -1], [2, 1]],
+            'pao': [[-1, 0], [-3, 0], [-5, 0], [0, -1], [0, -3], [0, -5], [0, 0], [0, 1], [0, 3], [0, 5], [1, 0], [3, 0], [5, 0]],
+            'ju': [[-3, 0],[-2, 0], [-1, 0], [0, -2], [0, -1], [0, -3], [0, 0], [0, 1], [0, 2], [0, 3], [1, 0], [2, 0], [3, 0]],
+            'jiang': [
+                [-2, -2], [-2, -1], [-2, 0], [-2, 1], [-2, 2],
+                [-1, -2], [-1, -1], [-1, 0], [-1, 1], [-1, 2],
+                [0, -2], [0, -1], [0, 0], [0, 1], [0, 2],
+                [1, -2], [1, -1], [1, 0], [1, 1], [1, 2],
+                [2, -2], [2, -1], [2, 0], [2, 1], [2, 2]
+            ],
+            'shi': [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
+            'xiang': [
+                [-5, -5], [-4, -4], [-5, 5], [-4, 4], [-3, -3], [-3, 3], [-2, -2], [-2, 2], [-1, -1], [-1, 1],
+                [0, 0], [1, -1], [1, 1], [2, -2], [2, 2], [3, -3], [3, 3], [4, -4], [4, 4], [5, -5], [5, 5]
+            ],
+            'liang': [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 0], [0, 1], [1, -1], [1, 0], [1, 1]],
+            'grain': [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 0], [0, 1], [1, -1], [1, 0], [1, 1]]
+        };
+
+
+
+        // 初始化造兵区
+        this.buildArea = {};
+        // 初始化当前行动方为绿方
+        this.currentPlayer = 'green';
+        // 初始化回合计数
+        this.turnCount = 1;
+        // 初始化出局玩家列表
+        this.eliminatedPlayers = [];
+        // 初始化各玩家的棋子列表，提高查找效率
+        this.playerPieces = {
+            'green': [],
+            'red': [],
+            'blue': [],
+            'yellow': []
+        };
+        
+        // 缓存各势力的可见格子，避免重复计算
+        this.cachedVisibleCells = {
+            'green': [],
+            'red': [],
+            'blue': [],
+            'yellow': []
+        };
+        this.initBoard();
+        this.renderBoard();
+        this.renderPieceInfo();
+        this.renderResources();
+        this.renderBuildArea();
+        // 添加🌾棋子
+        this.addGrainPieces();
+        // 更新当前行动方显示
+        this.updateCurrentPlayerDisplay();
+    }
+
+    initBoard() {
+        // 初始化30*20的棋盘
+        for (let i = 0; i < 20; i++) {
+            this.board[i] = [];
+            for (let j = 0; j < 30; j++) {
+                this.board[i][j] = null;
+            }
+        }
+        
+        // 放置初始棋子 (简化版)
+        // 红方 (用对象表示棋子，包含类型和势力) - 只保留一个将在左上5行5列处
+        this.board[4][4] = {type: 'jiang', side: 'red'};
+        
+        // 绿方 - 只保留一个将在左下5行5列处
+        this.board[15][4] = {type: 'jiang', side: 'green'};
+        
+        // 蓝方 - 只保留一个将在右下5行5列处
+        this.board[15][25] = {type: 'jiang', side: 'blue'};
+        
+        // 黄方 - 只保留一个将在右上5行5列处
+        this.board[4][25] = {type: 'jiang', side: 'yellow'};
+        
+        // 中立方（灰色方棋子）
+        // 移除了硬编码的🌲符号位置，现在通过initTreeSymbols方法动态生成
+        
+        // 初始化造兵区棋子
+        this.buildArea = {
+            'green': [
+                {type: 'zu', side: 'green'},
+                {type: 'pao', side: 'green'},
+                {type: 'ju', side: 'green'},
+                {type: 'ma', side: 'green'},
+                {type: 'xiang', side: 'green'},
+                {type: 'shi', side: 'green'},
+                {type: 'liang', side: 'green'}
+            ],
+            'red': [
+                {type: 'zu', side: 'red'},
+                {type: 'pao', side: 'red'},
+                {type: 'ju', side: 'red'},
+                {type: 'ma', side: 'red'},
+                {type: 'xiang', side: 'red'},
+                {type: 'shi', side: 'red'},
+                {type: 'liang', side: 'red'}
+            ],
+            'blue': [
+                {type: 'zu', side: 'blue'},
+                {type: 'pao', side: 'blue'},
+                {type: 'ju', side: 'blue'},
+                {type: 'ma', side: 'blue'},
+                {type: 'xiang', side: 'blue'},
+                {type: 'shi', side: 'blue'},
+                {type: 'liang', side: 'blue'}
+            ],
+            'yellow': [
+                {type: 'zu', side: 'yellow'},
+                {type: 'pao', side: 'yellow'},
+                {type: 'ju', side: 'yellow'},
+                {type: 'ma', side: 'yellow'},
+                {type: 'xiang', side: 'yellow'},
+                {type: 'shi', side: 'yellow'},
+                {type: 'liang', side: 'yellow'}
+            ]
+        };
+        
+        // 在棋盘初始化时添加✡符号
+        this.initStarSymbols();
+        // 在棋盘初始化时添加⛰符号
+        this.initMountainSymbols();
+        // 在棋盘初始化时添加🌲符号
+        this.initTreeSymbols();
+        
+        // 初始化各玩家的棋子列表
+        this.updatePlayerPiecesLists();
+        
+        // 游戏结束标志
+        this.gameOver = false;
+    }
+    
+    // 更新各玩家的棋子列表
+    updatePlayerPiecesLists() {
+        // 清空现有的棋子列表
+        this.playerPieces.green = [];
+        this.playerPieces.red = [];
+        this.playerPieces.blue = [];
+        this.playerPieces.yellow = [];
+        
+        // 遍历整个棋盘，收集各玩家的棋子
+        for (let i = 0; i < 20; i++) {
+            for (let j = 0; j < 30; j++) {
+                const piece = this.board[i][j];
+                if (piece && piece.side && piece.side !== 'gray') {
+                    // 将棋子信息添加到对应的玩家列表
+                    const pieceInfo = {
+                        type: piece.type,
+                        side: piece.side,
+                        row: i,
+                        col: j,
+                        piece: piece
+                    };
+                    
+                    if (this.playerPieces[piece.side]) {
+                        this.playerPieces[piece.side].push(pieceInfo);
+                    }
+                }
+            }
+        }
+        
+        // 棋子列表更新后，重新计算所有势力的可见格子
+        this.calculateAllVisibleCells();
+    }
+    
+    // 在棋盘初始化时添加🌲棋子
+    initTreeSymbols() {
+        // 棋盘尺寸
+        const rows = 20;
+        const cols = 30;
+        
+        // 计算左上区域的边界
+        const midRow = Math.floor(rows / 2);
+        const midCol = Math.floor(cols / 2);
+        
+        // 收集左上区域的空格子（排除已有棋子、✡符号和⛰符号的位置）
+        const topLeftEmptyCells = [];
+        for (let i = 0; i < midRow; i++) {
+            for (let j = 0; j < midCol; j++) {
+                // 检查是否有棋子
+                if (!this.board[i][j]) {
+                    // 检查是否有✡符号
+                    let hasStar = false;
+                    for (const star of this.starPositions) {
+                        if (star.row === i && star.col === j) {
+                            hasStar = true;
+                            break;
+                        }
+                    }
+                    
+                    // 检查是否有⛰符号
+                    let hasMountain = false;
+                    if (!hasStar) {
+                        for (const mountain of this.mountainPositions) {
+                            if (mountain.row === i && mountain.col === j) {
+                                hasMountain = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // 如果没有棋子、✡符号和⛰符号，将这个格子添加到左上区域空格子数组中
+                    if (!hasStar && !hasMountain) {
+                        topLeftEmptyCells.push({ row: i, col: j });
+                    }
+                }
+            }
+        }
+        
+        // 根据配置设置🌲符号数量
+        let treeCount;
+        switch(this.config.treeQuantity) {
+            case 'dense':
+                treeCount = 9; // 茂密模式
+                break;
+            case 'none':
+                treeCount = 3; // 稀疏模式
+                break;
+            default:
+                treeCount = 6; // 一般模式
+        }
+        // 随机选择+treeCount个空格子添加🌲棋子
+        const count = Math.floor(Math.random() * 3) + treeCount; // 4-10之间的随机数
+        const actualCount = Math.min(topLeftEmptyCells.length, count);
+        
+        // 创建一个数组来跟踪已选择的索引
+        const selectedIndices = new Set();
+        
+        // 存储左上区域的🌲棋子位置
+        const topLeftTrees = [];
+        
+        // 随机选择格子并添加棋子
+        for (let i = 0; i < actualCount; i++) {
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * topLeftEmptyCells.length);
+            } while (selectedIndices.has(randomIndex));
+            
+            selectedIndices.add(randomIndex);
+            
+            // 获取选中的格子
+            const cellInfo = topLeftEmptyCells[randomIndex];
+            
+            // 在棋盘上放置中立的灰色🌲棋子
+            this.board[cellInfo.row][cellInfo.col] = { type: 'tree', side: 'gray' };
+            
+            // 存储左上区域的🌲棋子位置
+            topLeftTrees.push({ row: cellInfo.row, col: cellInfo.col });
+        }
+        
+        // 对称复制到其他三个区域
+        for (const tree of topLeftTrees) {
+            // 左上区域的🌲棋子
+            this.board[tree.row][tree.col] = { type: 'tree', side: 'gray' };
+            
+            // 右上区域的🌲棋子（水平对称）
+            this.board[tree.row][cols - 1 - tree.col] = { type: 'tree', side: 'gray' };
+            
+            // 左下区域的🌲棋子（垂直对称）
+            this.board[rows - 1 - tree.row][tree.col] = { type: 'tree', side: 'gray' };
+            
+            // 右下区域的🌲棋子（中心对称）
+            this.board[rows - 1 - tree.row][cols - 1 - tree.col] = { type: 'tree', side: 'gray' };
+        }
+    }
+    
+    // 在棋盘初始化时添加✡符号
+    initStarSymbols() {
+        // 创建一个数组来存储左上区域的空格子
+        const topLeftEmptyCells = [];
+        
+        // 棋盘尺寸
+        const rows = 20;
+        const cols = 30;
+        
+        // 计算左上区域的边界
+        const midRow = Math.floor(rows / 2);
+        const midCol = Math.floor(cols / 2);
+        
+        // 收集左上区域的空格子
+        for (let i = 0; i < midRow; i++) {
+            for (let j = 0; j < midCol; j++) {
+                // 检查是否有棋子
+                if (!this.board[i][j]) {
+                    // 将这个格子添加到左上区域空格子数组中
+                    topLeftEmptyCells.push({ row: i, col: j });
+                }
+            }
+        }
+        
+        // 根据配置设置✡符号数量
+        let starCount;
+        switch(this.config.starQuantity) {
+            case 'rich':
+                starCount = 7; // 富饶模式：6个基础位置，共24个
+                break;
+            case 'poor':
+                starCount = 2; // 贫瘠模式：2个基础位置，共8个
+                break;
+            default:
+                starCount = 4; // 一般模式：4个基础位置，共16个
+        }
+        // 随机添加✡符号
+        const count = Math.floor(Math.random() * 2) + starCount; // 3-5之间的随机数
+        const actualCount = Math.min(topLeftEmptyCells.length, count);
+        
+        // 存储左上区域的✡符号位置
+        const topLeftStars = [];
+        
+        // 辅助函数：检查两个位置之间的距离是否至少为5格
+        const isDistanceValid = (pos1, pos2) => {
+            const distance = Math.abs(pos1.row - pos2.row) + Math.abs(pos1.col - pos2.col);
+            return distance >= 5;
+        };
+        
+        // 随机选择格子并添加符号，确保✡符号之间至少相隔5格
+        for (let i = 0; i < actualCount; i++) {
+            let validPositionFound = false;
+            let maxAttempts = 100; // 限制尝试次数，防止无限循环
+            
+            while (!validPositionFound && maxAttempts > 0) {
+                const randomIndex = Math.floor(Math.random() * topLeftEmptyCells.length);
+                const cellInfo = topLeftEmptyCells[randomIndex];
+                
+                // 检查新位置与已选择位置之间的距离
+                let isValid = true;
+                for (const star of topLeftStars) {
+                    if (!isDistanceValid(cellInfo, star)) {
+                        isValid = false;
+                        break;
+                    }
+                }
+                
+                if (isValid) {
+                    // 存储左上区域的✡符号位置
+                    topLeftStars.push({ row: cellInfo.row, col: cellInfo.col });
+                    validPositionFound = true;
+                }
+                
+                maxAttempts--;
+            }
+            
+            // 如果尝试次数用尽仍未找到有效位置，则跳出循环
+            if (maxAttempts <= 0) {
+                break;
+            }
+        }
+        
+        // 对称复制到其他三个区域
+        for (const star of topLeftStars) {
+            // 左上区域的✡符号
+            this.starPositions.push({ row: star.row, col: star.col });
+            
+            // 右上区域的✡符号（水平对称）
+            this.starPositions.push({ row: star.row, col: cols - 1 - star.col });
+            
+            // 左下区域的✡符号（垂直对称）
+            this.starPositions.push({ row: rows - 1 - star.row, col: star.col });
+            
+            // 右下区域的✡符号（中心对称）
+            this.starPositions.push({ row: rows - 1 - star.row, col: cols - 1 - star.col });
+        }
+    }
+    
+    // 在棋盘初始化时添加⛰符号
+    initMountainSymbols() {
+        // 创建一个数组来存储左上区域的空格子（排除已有棋子和✡符号的位置）
+        const topLeftEmptyCells = [];
+        
+        // 棋盘尺寸
+        const rows = 20;
+        const cols = 30;
+        
+        // 计算左上区域的边界
+        const midRow = Math.floor(rows / 2);
+        const midCol = Math.floor(cols / 2);
+        
+        // 收集左上区域的空格子（排除已有棋子和✡符号的位置）
+        for (let i = 0; i < midRow; i++) {
+            for (let j = 0; j < midCol; j++) {
+                // 检查是否有棋子
+                if (!this.board[i][j]) {
+                    // 检查是否有✡符号
+                    let hasStar = false;
+                    for (const star of this.starPositions) {
+                        if (star.row === i && star.col === j) {
+                            hasStar = true;
+                            break;
+                        }
+                    }
+                    
+                    // 如果没有棋子且没有✡符号，将这个格子添加到左上区域空格子数组中
+                    if (!hasStar) {
+                        topLeftEmptyCells.push({ row: i, col: j });
+                    }
+                }
+            }
+        }
+        
+        // 随机选择1-3个空格子添加⛰符号
+        const count = Math.floor(Math.random() * 3) + 1; // 1-3之间的随机数
+        const actualCount = Math.min(topLeftEmptyCells.length, count);
+        
+        // 创建一个数组来跟踪已选择的索引
+        const selectedIndices = new Set();
+        
+        // 存储左上区域的⛰符号位置
+        const topLeftMountains = [];
+        
+        // 随机选择格子并添加符号
+        for (let i = 0; i < actualCount; i++) {
+            let randomIndex;
+            do {
+                randomIndex = Math.floor(Math.random() * topLeftEmptyCells.length);
+            } while (selectedIndices.has(randomIndex));
+            
+            selectedIndices.add(randomIndex);
+            
+            // 获取选中的格子
+            const cellInfo = topLeftEmptyCells[randomIndex];
+            
+            // 存储左上区域的⛰符号位置
+            topLeftMountains.push({ row: cellInfo.row, col: cellInfo.col });
+        }
+        
+        // 对称复制到其他三个区域
+        for (const mountain of topLeftMountains) {
+            // 左上区域的⛰符号
+            this.mountainPositions.push({ row: mountain.row, col: mountain.col });
+            
+            // 右上区域的⛰符号（水平对称）
+            this.mountainPositions.push({ row: mountain.row, col: cols - 1 - mountain.col });
+            
+            // 左下区域的⛰符号（垂直对称）
+            this.mountainPositions.push({ row: rows - 1 - mountain.row, col: mountain.col });
+            
+            // 右下区域的⛰符号（中心对称）
+            this.mountainPositions.push({ row: rows - 1 - mountain.row, col: cols - 1 - mountain.col });
+        }
+    }
+    // 计算可见的格子
+    // 计算所有势力的可见格子并缓存到全局变量
+    calculateAllVisibleCells() {
+        const sides = ['green', 'red', 'blue', 'yellow'];
+
+        // 清空现有的缓存
+        for (const side of sides) {
+            this.cachedVisibleCells[side] = [];
+
+            if (!this.playerPieces || !this.playerPieces[side]) continue;
+            
+            const playerPieces = this.playerPieces[side];
+            for (const piece of playerPieces) {
+                const { row: i, col: j, type: pieceType } = piece;
+                
+                // 获取该棋子类型的视野范围
+                const ranges = this.visionRanges[pieceType] || [[0, 0]];
+
+                // 直接添加所有预计算的视野位置
+                for (const [di, dj] of ranges) {
+                    const newRow = i + di;
+                    const newCol = j + dj;
+                    
+                    // 边界检查
+                    if (newRow >= 0 && newRow < 20 && newCol >= 0 && newCol < 30) {
+                        const cellKey = `${newRow},${newCol}`;
+                        this.cachedVisibleCells[side].push(cellKey);
+                    }
+                }
+            }
+        }
+
+        // 开图测试用
+        if(this.revealMap){
+            this.cachedVisibleCells['green'] = this.cachedVisibleCells['green'].concat(this.cachedVisibleCells['red'], this.cachedVisibleCells['blue'], this.cachedVisibleCells['yellow'])
+        }
+    }
+
+    // 从缓存获取指定玩家的可见格子
+    calculateVisibleCells(player) {
+        // 确保player有值
+        if (!player) {
+            player = this.currentPlayer || 'red';
+        }
+        
+        // 如果缓存中没有，则重新计算
+        if (!this.cachedVisibleCells[player] || this.cachedVisibleCells[player].length === 0) {
+            this.calculateAllVisibleCells();
+        }
+        
+        return this.cachedVisibleCells[player] || [];
+    }
+    
+    renderBoard() {
+        const chessboard = document.getElementById('chessboard');
+        chessboard.innerHTML = '';
+        
+        // 计算当前玩家的可见格子
+        const visibleCells = this.calculateVisibleCells(this.currentPlayer);
+
+        for (let i = 0; i < 20; i++) {
+            for (let j = 0; j < 30; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.dataset.row = i;
+                cell.dataset.col = j;
+                
+                // 检查是否有棋子且当前格子可见
+                if (this.board[i][j] && visibleCells.includes(`${i},${j}`)) {
+                    // 创建棋子元素
+                    const piece = document.createElement('div');
+                    piece.className = 'piece';
+                    piece.dataset.type = this.board[i][j].type;
+                    piece.dataset.side = this.board[i][j].side;
+                    piece.textContent = this.getPieceChar(this.board[i][j].type);
+                    
+                    // 根据势力设置不同颜色
+                    if (this.board[i][j].side === 'red') {
+                        piece.style.color = '#fff';
+                        piece.style.backgroundColor = '#c00';
+                    } else if (this.board[i][j].side === 'green') {
+                        piece.style.color = '#000';
+                        piece.style.backgroundColor = '#0c0'; // 绿色
+                    } else if (this.board[i][j].side === 'blue') {
+                        piece.style.color = '#fff';
+                        piece.style.backgroundColor = '#00f'; // 蓝色
+                    } else if (this.board[i][j].side === 'yellow') {
+                        piece.style.color = '#000';
+                        piece.style.backgroundColor = '#ff0'; // 黄色
+                    } else if (this.board[i][j].side === 'gray') {
+                        piece.style.color = '#000';
+                        piece.style.backgroundColor = '#888'; // 灰色
+                    }
+                    piece.addEventListener('click', () => {
+                        if (this.board[i][j]) {
+                            this.showPieceInfo(this.board[i][j].type);
+                        }
+                    });
+                    cell.appendChild(piece);
+                } else {
+                    // 检查是否是⛰符号的位置
+                    const isMountainPosition = this.mountainPositions.some(pos => pos.row === i && pos.col === j);
+                    if (isMountainPosition) {
+                        // 添加⛰符号
+                        cell.innerHTML = '⛰';
+                        cell.style.fontSize = '20px';
+                        cell.style.color = '#000';
+                    } else {
+                        // 检查是否是✡符号的位置
+                        const isStarPosition = this.starPositions.some(pos => pos.row === i && pos.col === j);
+                        if (isStarPosition) {
+                            // 添加✡符号
+                            cell.innerHTML = '✡';
+                            cell.style.fontSize = '20px';
+                            cell.style.color = '#000';
+                        }
+                    }
+                }
+                
+                // 添加迷雾遮盖层
+                const fog = document.createElement('div');
+                fog.className = 'fog';
+                
+                // 检查当前格子是否可见
+                if (!visibleCells.includes(`${i},${j}`)) {
+                    // 如果不可见，添加迷雾效果
+                    fog.style.position = 'absolute';
+                    fog.style.top = '0';
+                    fog.style.left = '0';
+                    fog.style.width = '100%';
+                    fog.style.height = '100%';
+                    fog.style.backgroundColor = 'rgba(0, 0, 0, 0.7)'; // 半透明黑色
+                    fog.style.zIndex = '10'; // 确保迷雾在棋子上方
+                }
+                
+                cell.appendChild(fog);
+                cell.addEventListener('click', (e) => this.cellClick(e));
+                chessboard.appendChild(cell);
+            }
+        }
+        
+        // 如果有选中的棋子，高亮显示可移动的位置
+        // 使用setTimeout确保在棋子元素添加后再添加高亮
+        if (this.selectedPiece) {
+            setTimeout(() => this.highlightMovableCells(), 0);
+        }
+    }
+    
+    getPieceChar(pieceType) {
+        const pieceChars = {
+            'ju': '车',
+            'ma': '马',
+            'xiang': '象',
+            'shi': '士',
+            'jiang': '将',
+            'pao': '炮',
+            'zu': '卒',
+            'tree': '🌲',  // 添加中立方灰色棋子
+            'liang': '粮',
+            'grain': '🌾'
+        };
+        return pieceChars[pieceType] || '';
+    }
+
+    renderPieceInfo() {
+        // 游戏开始时不显示所有棋子的介绍
+        const infoContent = document.getElementById('info-content');
+        infoContent.innerHTML = '';
+        
+        /*
+        for (const [key, info] of Object.entries(this.pieceInfo)) {
+            const infoItem = document.createElement('div');
+            infoItem.className = 'info-item';
+            infoItem.innerHTML = `<h3>${info.name}</h3><p>${info.description}</p>`;
+            infoContent.appendChild(infoItem);
+        }
+        */
+    }
+
+    renderResources() {
+        const resourceValues = document.getElementById('resource-values');
+        resourceValues.innerHTML = '';
+        
+        // 定义颜色方块符号映射
+        const colorSymbols = {
+            'red': '🟥',
+            'green': '🟩',
+            'blue': '🟦',
+            'yellow': '🟨'
+        };
+        
+        for (const [side, resource] of Object.entries(this.resources)) {
+            const resourceItem = document.createElement('div');
+            // 使用颜色方块符号代替颜色名称
+            resourceItem.textContent = `${colorSymbols[side]}: ${resource}`;
+            resourceValues.appendChild(resourceItem);
+        }
+        
+        // 重新渲染造兵区
+        this.renderBuildArea();
+    }
+
+    renderBuildPieces() {
+        // 造兵功能已统一整合到造兵区，移除旧的造兵按钮
+        const existingBuildPieces = document.getElementById('build-pieces');
+        if (existingBuildPieces) {
+            existingBuildPieces.remove();
+        }
+    }
+
+    renderBuildArea() {
+        // 创建造兵区容器
+        const buildAreaContainer = document.createElement('div');
+        buildAreaContainer.id = 'build-area';
+        buildAreaContainer.innerHTML = '<h3>造兵区</h3>';
+        
+        // 根据当前行动方创建造兵区
+        const side = this.currentPlayer;
+        const pieces = this.buildArea[side] || [];
+        
+        const sideContainer = document.createElement('div');
+        sideContainer.className = 'side-build-area';
+        sideContainer.innerHTML = `<h3>${side}</h3>`;
+        
+        // 根据行动方设置颜色
+        let backgroundColor;
+        switch (side) {
+            case 'green':
+                backgroundColor = '#0c0'; // 绿色
+                break;
+            case 'red':
+                backgroundColor = '#f00'; // 红色
+                break;
+            case 'blue':
+                backgroundColor = '#00f'; // 蓝色
+                break;
+            case 'yellow':
+                backgroundColor = '#ff0'; // 黄色
+                break;
+            default:
+                backgroundColor = '#0c0'; // 默认绿色
+        }
+        
+        pieces.forEach((piece, index) => {
+            const pieceElement = document.createElement('div');
+            pieceElement.className = 'build-piece';
+            pieceElement.dataset.type = piece.type;
+            pieceElement.dataset.side = piece.side;
+            pieceElement.dataset.index = index;
+            pieceElement.textContent = this.getPieceChar(piece.type);
+            
+            // 设置背景颜色
+            pieceElement.style.color = '#000';
+            pieceElement.style.backgroundColor = backgroundColor;
+            
+            pieceElement.addEventListener('click', (e) => this.buildAreaPieceClick(e));
+            sideContainer.appendChild(pieceElement);
+        });
+        
+        buildAreaContainer.appendChild(sideContainer);
+        
+        // 将造兵区添加到页面
+        const gameInfo = document.getElementById('game-info');
+        // 检查是否已经存在造兵区，如果存在则移除
+        const existingBuildArea = document.getElementById('build-area');
+        if (existingBuildArea) {
+            existingBuildArea.remove();
+        }
+        gameInfo.appendChild(buildAreaContainer);
+    }
+
+    showPieceInfo(pieceType) {
+        const info = this.pieceInfo[pieceType];
+        if (info) {
+            // 将\n替换为<br>以在HTML中正确显示换行
+            const formattedDescription = info.description.replace(/\n/g, '<br>');
+            document.getElementById('info-content').innerHTML = 
+                `<div class="info-item"><h3>${info.name}</h3><p>${formattedDescription}</p></div>`;
+        }
+    }
+
+    highlightMovableCells() {
+        // 清除之前的所有蓝色高亮
+        this.clearMovableCellsHighlight();
+        
+        // 计算当前玩家的可见格子
+        const visibleCells = this.calculateVisibleCells(this.currentPlayer);
+        
+        // 如果选中的棋子来自造兵区
+        if (this.selectedRow === null && this.selectedCol === null) {
+            // 直接遍历星位列表，而不是遍历整个棋盘
+            for (const starPos of this.starPositions) {
+                const { row, col } = starPos;
+
+                // 检查位置是否没有棋子，且不是⛰符号的位置，且在视野内
+                if (this.board[row][col] === null && visibleCells.includes(`${row},${col}`)) {
+                    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+                    if (cell) {
+                        cell.style.backgroundColor = 'lightblue';
+                    }
+                }
+            }
+        } else {
+            // 如果选中的棋子在棋盘上，显示可以移动到的位置
+            // 实现正确的移动高亮逻辑
+            for (let i = 0; i < 20; i++) {
+                for (let j = 0; j < 30; j++) {
+                    if (this.isValidMove(this.selectedPiece, this.selectedRow, this.selectedCol, i, j, this.selectedPieceSide)) {
+                        const cell = document.querySelector(`.cell[data-row="${i}"][data-col="${j}"]`);
+                        if (cell) {
+                            cell.style.backgroundColor = 'lightblue';
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    clearMovableCellsHighlight() {
+        // 清除所有蓝色高亮显示
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            if (cell.style.backgroundColor === 'lightblue') {
+                cell.style.backgroundColor = '';
+            }
+        });
+    }
+
+    cellClick(e) {
+        const cell = e.target.closest('.cell');
+        if (!cell) return;
+        
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        
+        // 如果点击的格子有棋子
+        if (this.board[row][col]) {
+            // 如果已有选中的棋子，且目标棋子是对方棋子，则尝试吃子
+            if (this.selectedPiece && this.board[row][col].side !== this.selectedPieceSide) {
+                this.movePiece(row, col);
+                return;
+            }
+            
+            // 检查是否是当前玩家的棋子或灰色中立棋子
+            if (this.board[row][col].side !== this.currentPlayer && this.board[row][col].side !== 'gray') {
+                // 显示棋子信息但不选中
+                this.showPieceInfo(this.board[row][col].type);
+                return;
+            }
+            
+            // 取消之前选中的棋子样式
+            if (this.selectedRow !== null && this.selectedCol !== null) {
+                const prevCell = document.querySelector(`.cell[data-row="${this.selectedRow}"][data-col="${this.selectedCol}"]`);
+                if (prevCell) {
+                    prevCell.style.backgroundColor = '';
+                }
+                // 清除所有蓝色高亮
+                this.clearMovableCellsHighlight();
+            }
+            
+            // 选中新的棋子
+            this.selectedPiece = this.board[row][col].type;
+            this.selectedPieceSide = this.board[row][col].side;
+            this.selectedRow = row;
+            this.selectedCol = col;
+            cell.style.backgroundColor = '#ff0'; // 黄色表示选中
+            
+            // 显示棋子信息
+            this.showPieceInfo(this.board[row][col].type);
+            
+            // 高亮显示可移动的位置
+            this.highlightMovableCells();
+            
+            // 更新资源和造兵界面
+            this.renderResources();
+        } else if (this.selectedPiece) {
+            // 如果点击的是空格子且已有选中的棋子
+                    // 检查是否可以移动到该位置
+                    // 检查目标位置是否是⛰符号的位置
+                    const isMountainPosition = this.mountainPositions.some(pos => pos.row === row && pos.col === col);
+                    if (!isMountainPosition && this.isValidMove(this.selectedPiece, this.selectedRow, this.selectedCol, row, col, this.selectedPieceSide)) {
+                        // 如果可以移动，则执行移动
+                        this.movePiece(row, col, true);
+                    } else {
+                        // 如果不能移动也不能吃子，则取消选中
+                        if (this.selectedRow !== null && this.selectedCol !== null) {
+                            const prevCell = document.querySelector(`.cell[data-row="${this.selectedRow}"][data-col="${this.selectedCol}"]`);
+                            if (prevCell) {
+                                prevCell.style.backgroundColor = '';
+                            }
+                            this.selectedPiece = null;
+                            this.selectedPieceSide = null;
+                            this.selectedRow = null;
+                            this.selectedCol = null;
+                        }
+                        // 清除所有蓝色高亮
+                        this.clearMovableCellsHighlight();
+                    }
+        }
+    }
+
+    buildAreaPieceClick(e) {
+        
+        const pieceElement = e.target;
+        const pieceType = pieceElement.dataset.type;
+        const pieceSide = pieceElement.dataset.side;
+        
+        // 检查是否是当前行动方回合
+        if (pieceSide !== this.currentPlayer) {
+            alert(`只能在${this.currentPlayer}方回合进行造兵！`);
+            return;
+        }
+        
+        // 取消之前选中的棋子样式
+        if (this.selectedRow !== null && this.selectedCol !== null) {
+            const prevCell = document.querySelector(`.cell[data-row="${this.selectedRow}"][data-col="${this.selectedCol}"]`);
+            if (prevCell) {
+                prevCell.style.backgroundColor = '';
+            }
+            // 清除所有蓝色高亮
+            this.clearMovableCellsHighlight();
+        }
+        
+        // 选中造兵区的棋子
+        this.selectedPiece = pieceType;
+        this.selectedPieceSide = pieceSide;
+        this.selectedRow = null; // 表示选中的棋子来自造兵区
+        this.selectedCol = null;
+        
+        // 高亮显示可移动的位置
+        this.highlightMovableCells();
+        
+        // 显示棋子信息
+        this.showPieceInfo(pieceType);
+        
+        // 添加处理棋子移动的逻辑
+        // 监听棋盘点击事件，处理造兵区棋子的放置
+        const cells = document.querySelectorAll('.cell');
+        const handleClick = (e) => {
+            const cell = e.target.closest('.cell');
+            if (!cell) return;
+            
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            // 检查目标位置是否是⛰符号的位置
+            const isMountainPosition = this.mountainPositions.some(pos => pos.row === row && pos.col === col);
+            if (isMountainPosition) {
+                // 不再显示提示窗口，直接返回
+                return;
+            }
+            
+            // 尝试移动棋子
+            if (this.isValidMove(this.selectedPiece, this.selectedRow, this.selectedCol, row, col, this.selectedPieceSide)) {
+                this.movePiece(row, col, true);
+                this.selectedPiece = null;
+                this.selectedRow = null;
+                this.selectedCol = null;
+                
+                // 清除所有蓝色高亮
+                this.clearMovableCellsHighlight();
+                
+                // 移除事件监听器
+                cells.forEach(c => c.removeEventListener('click', handleClick));
+            } else {
+                // 如果移动无效，不再显示错误信息
+                // 清除选中状态
+                this.selectedPiece = null;
+                this.selectedRow = null;
+                this.selectedCol = null;
+                
+                // 清除所有蓝色高亮
+                this.clearMovableCellsHighlight();
+                
+                // 移除事件监听器
+                cells.forEach(c => c.removeEventListener('click', handleClick));
+            }
+        };
+        
+        // 添加事件监听器
+        cells.forEach(cell => cell.addEventListener('click', handleClick));
+    }
+
+    isValidMove(piece, fromRow, fromCol, toRow, toCol, side = null) {
+        // 去掉不移动的格子
+        if (fromRow === toRow && fromCol === toCol) {
+            return false;
+        }
+
+        // 检查目标位置是否是⛰符号的位置
+        const isMountainPosition = this.mountainPositions.some(pos => pos.row === toRow && pos.col === toCol);
+        if (isMountainPosition) {
+            return false; // 不能移动到⛰符号的位置
+        }
+        
+        // 使用指定的side或当前玩家，支持计算任意势力的视野范围
+        const playerSide = side || this.currentPlayer;
+        const visibleCells = this.calculateVisibleCells(playerSide);
+
+        if (!visibleCells.includes(`${toRow},${toCol}`)) {
+            return false; // 目标位置不在视野内
+        }
+        
+
+        // 如果选中的棋子来自造兵区（fromRow和fromCol为null），则检查目标位置是否带✡且没有棋子，且不是⛰符号的位置
+        if (fromRow === null && fromCol === null) {
+            const isStarPosition = this.starPositions.some(pos => pos.row === toRow && pos.col === toCol);
+            const isMountainPosition = this.mountainPositions.some(pos => pos.row === toRow && pos.col === toCol);
+            return isStarPosition && this.board[toRow][toCol] === null && !isMountainPosition;
+        }
+        
+        // 不能吃自己的棋子
+        // 修改为允许不同势力的棋子相互吃掉
+        if (this.currentPlayer === side &&
+            this.board[toRow][toCol] !== null && 
+            this.board[fromRow] && this.board[fromRow][fromCol] &&
+            this.board[toRow][toCol].side === this.board[fromRow][fromCol].side) {
+            return false;
+        }
+        
+        // 树木棋子不能移动
+        if (piece === 'tree') {
+            return false;
+        }
+        
+        // 粮棋子不能移动
+        if (piece === 'liang') {
+            return false;
+        }
+        
+        // 🌾棋子不能移动
+        if (piece === 'grain') {
+            return false;
+        }
+        
+        // 根据棋子类型检查移动规则
+        switch (piece) {
+            case 'ju': // 车
+                return this.isValidJuMove(fromRow, fromCol, toRow, toCol, side);
+            case 'ma': // 马
+                return this.isValidMaMove(fromRow, fromCol, toRow, toCol);
+            case 'xiang': // 象
+                return this.isValidXiangMove(fromRow, fromCol, toRow, toCol);
+            case 'shi': // 士
+                return this.isValidShiMove(fromRow, fromCol, toRow, toCol);
+            case 'jiang': // 将
+                return this.isValidJiangMove(fromRow, fromCol, toRow, toCol);
+            case 'pao': // 炮
+                return this.isValidPaoMove(fromRow, fromCol, toRow, toCol, side);
+            case 'zu': // 卒
+                return this.isValidZuMove(fromRow, fromCol, toRow, toCol);
+            default:
+                return false;
+        }
+    }
+    
+    isValidJuMove(fromRow, fromCol, toRow, toCol, side = null) {
+        // 车只能横竖直线移动
+        if (fromRow !== toRow && fromCol !== toCol) {
+            return false;
+        }
+        
+        // 使用指定的side或当前玩家
+        const playerSide = side || this.currentPlayer;
+        const visibleCells = this.calculateVisibleCells(playerSide);
+        
+        // 检查路径上是否有阻挡
+        if (fromRow === toRow) {
+            // 横向移动
+            const start = Math.min(fromCol, toCol);
+            const end = Math.max(fromCol, toCol);
+            for (let col = start + 1; col < end; col++) {
+                // 检查位置是否是⛰符号
+                const isMountainPosition = this.mountainPositions.some(pos => pos.row === fromRow && pos.col === col);
+                // 检查位置是否被迷雾遮挡
+                const isFog = !visibleCells.includes(`${fromRow},${col}`);
+                if (this.board[fromRow][col] !== null || isMountainPosition || isFog) {
+                    return false;
+                }
+            }
+        } else {
+            // 纵向移动
+            const start = Math.min(fromRow, toRow);
+            const end = Math.max(fromRow, toRow);
+            for (let row = start + 1; row < end; row++) {
+                // 检查位置是否是⛰符号
+                const isMountainPosition = this.mountainPositions.some(pos => pos.row === row && pos.col === fromCol);
+                // 检查位置是否被迷雾遮挡
+                const isFog = !visibleCells.includes(`${row},${fromCol}`);
+                if (this.board[row][fromCol] !== null || isMountainPosition || isFog) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+    
+    isValidMaMove(fromRow, fromCol, toRow, toCol) {
+        // 马走日字
+        const rowDiff = Math.abs(toRow - fromRow);
+        const colDiff = Math.abs(toCol - fromCol);
+        
+        if (!((rowDiff === 2 && colDiff === 1) || (rowDiff === 1 && colDiff === 2))) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    isValidXiangMove(fromRow, fromCol, toRow, toCol) {
+        // 象走田字
+        const rowDiff = Math.abs(toRow - fromRow);
+        const colDiff = Math.abs(toCol - fromCol);
+        
+        if (rowDiff !== 2 || colDiff !== 2) {
+            return false;
+        }
+        
+        // 检查是否蹩象腿
+        const blockerRow = fromRow + (toRow > fromRow ? 1 : -1);
+        const blockerCol = fromCol + (toCol > fromCol ? 1 : -1);
+        if (blockerRow >= 0 && blockerRow < 20 && blockerCol >= 0 && blockerCol < 30 &&
+            this.board[blockerRow] && this.board[blockerRow][blockerCol] !== null) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    isValidShiMove(fromRow, fromCol, toRow, toCol) {
+        // 士只能斜线移动一格
+        const rowDiff = Math.abs(toRow - fromRow);
+        const colDiff = Math.abs(toCol - fromCol);
+        
+        if (rowDiff !== 1 || colDiff !== 1) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    isValidJiangMove(fromRow, fromCol, toRow, toCol) {
+        // 对于新势力，我们暂时允许它们在整个棋盘上移动
+        
+        // 检查是否移动了一步
+        const rowDiff = Math.abs(toRow - fromRow);
+        const colDiff = Math.abs(toCol - fromCol);
+        
+        if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+                return true;
+        }
+        
+        return false;
+    }
+    
+    isValidPaoMove(fromRow, fromCol, toRow, toCol, side = null) {
+        // 炮的移动规则比较特殊
+        if (fromRow !== toRow && fromCol !== toCol) {
+            return false;
+        }
+        
+        // 使用指定的side或当前玩家
+        const playerSide = side || this.currentPlayer;
+        const visibleCells = this.calculateVisibleCells(playerSide);
+        
+        // 计算路径上的棋子数
+        let pieceCount = 0;
+        let hasFog = false;
+        
+        if (fromRow === toRow) {
+            // 横向移动
+            const start = Math.min(fromCol, toCol);
+            const end = Math.max(fromCol, toCol);
+            for (let col = start + 1; col < end; col++) {
+                // 检查位置是否是⛰符号
+                const isMountainPosition = this.mountainPositions.some(pos => pos.row === fromRow && pos.col === col);
+                // 检查位置是否被迷雾遮挡
+                const isFog = !visibleCells.includes(`${fromRow},${col}`);
+                if (this.board[fromRow][col] !== null || isMountainPosition || isFog) {
+                    pieceCount++;
+                    if(isFog) hasFog = true;
+                }
+            }
+        } else {
+            // 纵向移动
+            const start = Math.min(fromRow, toRow);
+            const end = Math.max(fromRow, toRow);
+            for (let row = start + 1; row < end; row++) {
+                // 检查位置是否是⛰符号
+                const isMountainPosition = this.mountainPositions.some(pos => pos.row === row && pos.col === fromCol);
+                // 检查位置是否被迷雾遮挡
+                const isFog = !visibleCells.includes(`${row},${fromCol}`);
+                if (this.board[row][fromCol] !== null || isMountainPosition || isFog) {
+                    pieceCount++;
+                    if(isFog) hasFog = true;
+                }
+            }
+        }
+        if(this.currentPlayer === 'green'){
+            console.log(fromRow, fromCol, toRow, toCol)
+            console.log(pieceCount, hasFog)
+        }
+
+        // 炮的移动规则：
+        // 1. 不吃子时，路径上不能有棋子
+        // 2. 吃子时，路径上必须有且仅有一个棋子
+        const targetPiece = this.board[toRow][toCol];
+        if (targetPiece === null) {
+            // 不吃子移动
+            return pieceCount === 0;
+        } else {
+            // 吃子移动
+            return !hasFog && pieceCount === 1;
+        }
+    }
+    
+    isValidZuMove(fromRow, fromCol, toRow, toCol) {
+        // 卒可以向上下左右移动一格
+        const rowDiff = Math.abs(toRow - fromRow);
+        const colDiff = Math.abs(toCol - fromCol);
+        
+        // 只能移动一格（上下左右）
+        if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    movePiece(toRow, toCol, updateUI = true) {
+        // 检查移动是否符合规则
+        if (this.isValidMove(this.selectedPiece, this.selectedRow, this.selectedCol, toRow, toCol, this.selectedPieceSide)) {
+            // 如果选中的棋子来自造兵区
+            if (this.selectedRow === null && this.selectedCol === null) {
+                // 获取该棋子的造兵消耗
+                const buildCost = this.buildablePieces[this.selectedPiece] || 0;
+                
+                // 检查资源是否足够
+                if (this.resources[this.selectedPieceSide] < buildCost) {
+                    alert(`资源不足！需要${buildCost}资源来造${this.selectedPiece}`);
+                    // 清除选中状态
+                    this.selectedRow = null;
+                    this.selectedCol = null;
+                    
+                    // 清除所有蓝色高亮
+                    this.clearMovableCellsHighlight();
+                    return;
+                }
+                
+                // 检查目标位置是否带✡且没有棋子，且不是⛰符号的位置
+                const isStarPosition = this.starPositions.some(pos => pos.row === toRow && pos.col === toCol);
+                if (isStarPosition && this.board[toRow][toCol] === null) {
+                    // 扣除造兵资源
+                    this.resources[this.selectedPieceSide] -= buildCost;
+                    // console.log(`玩家${this.selectedPieceSide}造兵消耗${buildCost}资源`);
+                    
+                    // 在棋盘上放置新棋子
+                    this.board[toRow][toCol] = {type: this.selectedPiece, side: this.selectedPieceSide};
+                } else {
+                    // 如果目标位置不符合条件，显示错误信息
+                    alert('只能在带✡且无棋子的格子上放置棋子！');
+                    // 清除选中状态
+                    this.selectedRow = null;
+                    this.selectedCol = null;
+                    
+                    // 清除所有蓝色高亮
+                    this.clearMovableCellsHighlight();
+                    return;
+                }
+                
+                // 不需要减少造兵区的棋子，因为造兵区的棋子不减少
+            } else {
+                    // 扣除移动消耗（仅普通棋子移动）
+                    this.deductMoveCost(this.selectedPiece, this.selectedPieceSide);
+                    
+                    // 移动棋子（吃掉目标位置的棋子，如果有）
+                    // 保存目标位置的棋子（如果有的话）
+                    const targetPiece = this.board[toRow][toCol];
+                    
+                    // 移动棋子
+                    this.board[toRow][toCol] = {type: this.selectedPiece, side: this.selectedPieceSide};
+                    this.board[this.selectedRow][this.selectedCol] = null;
+                    
+                    // 如果目标位置有棋子，则增加资源
+                if (targetPiece !== null) {
+                    // 根据被吃掉的棋子类型增加相应价值
+                    const pieceValue = this.pieceValues[targetPiece.type] || 0; // 默认价值为10
+                    this.resources[this.selectedPieceSide] += pieceValue;
+                    
+                    // 检查被吃掉的棋子是否为将
+                    const targetSide = targetPiece.side;
+                           
+                    // 初始化各玩家的棋子列表
+                    this.updatePlayerPiecesLists();
+
+                    if (targetPiece.type === 'jiang' && !this.eliminatedPlayers.includes(targetSide)) {
+                        // 如果被吃掉的是将，则该玩家立即出局
+                        this.eliminatedPlayers.push(targetSide);
+                        alert(`玩家${targetSide}已出局！`);
+                        // 检查是否只剩一个将
+                        this.checkWinCondition();
+                    }
+                } 
+            }
+            
+            // 切换到下一个行动方
+            this.switchPlayer();
+            
+            // 重置选中状态
+            this.selectedPiece = null;
+            this.selectedPieceSide = null;
+            const prevCell = document.querySelector(`.cell[data-row="${this.selectedRow}"][data-col="${this.selectedCol}"]`);
+            if (prevCell) {
+                prevCell.style.backgroundColor = '';
+            }
+            this.selectedRow = null;
+            this.selectedCol = null;
+            
+            // 清除所有蓝色高亮
+            this.clearMovableCellsHighlight();
+            
+            // 重新渲染棋盘和资源界面
+            if (updateUI) {
+                this.renderBoard();
+                this.renderResources();
+            }
+        }
+    }
+
+    // 检查玩家是否还有棋子在棋盘上
+    hasPiecesOnBoard(player) {
+        // 使用玩家棋子列表，提高查找效率
+        return this.playerPieces[player] && this.playerPieces[player].length > 0;
+    }
+    
+    // 检查玩家是否还有“将”棋子在棋盘上
+    hasJiangPiece(player) {
+        // 使用玩家棋子列表，提高查找效率
+        return this.playerPieces[player] && 
+               this.playerPieces[player].some(piece => piece.type === 'jiang');
+    }
+    
+    // 开图作弊开关函数
+    toggleRevealMap(enabled) {
+        this.revealMap = enabled;
+    }
+    
+    // 切换到下一个行动方
+    switchPlayer() {
+        // 按照绿->红->蓝->黄->绿的顺序切换
+        let nextPlayer = this.currentPlayer;
+        let attempts = 0;
+        
+        do {
+            switch (nextPlayer) {
+                case 'green':
+                    nextPlayer = 'red';
+                    break;
+                case 'red':
+                    nextPlayer = 'blue';
+                    break;
+                case 'blue':
+                    nextPlayer = 'yellow';
+                    break;
+                case 'yellow':
+                    nextPlayer = 'green';
+                    break;
+            }
+            attempts++;
+            
+            // 防止无限循环（理论上不会发生，但作为安全措施）
+            if (attempts > 5) {
+                console.log('无限循环检测到，已跳出');
+                break;
+            }
+        } while ((!this.hasPiecesOnBoard(nextPlayer) || this.eliminatedPlayers.includes(nextPlayer)) && nextPlayer !== 'green');
+        
+        this.currentPlayer = nextPlayer;
+
+        this.updatePlayerPiecesLists();
+
+        // 在切换回合时重新计算所有势力的可见格子
+        this.calculateAllVisibleCells();
+        
+        // 更新回合计数
+        if (this.currentPlayer === 'green') {
+            this.turnCount++;
+            
+            // 每100回合添加🌾棋子
+            if (this.turnCount % 100 === 0) {
+                this.addGrainPieces();
+            }
+
+            // 检查棋盘上的粮棋子，为对应玩家增加资源
+            this.addResourcesFromLiang();
+        }
+
+        if (this.currentPlayer !== 'green') {
+            //如果是精英
+            if (this.config.aiLevels[this.currentPlayer] === 'elite') {
+                // 精英AI
+                this.resources[this.currentPlayer] += 7;
+                this.revealMapProbability = 0.8;
+            }
+            if(this.config.aiLevels[this.currentPlayer] === 'normal'){
+                // 一般AI
+                this.resources[this.currentPlayer] += 3;
+                this.revealMapProbability = 0.3;
+            }
+        }
+        
+        // 更新UI显示
+        this.updateCurrentPlayerDisplay();
+        
+        // 重新渲染造兵区
+        this.renderBuildArea();
+        
+        // 如果是AI玩家（红、蓝、黄），执行AI移动
+        if (this.currentPlayer === 'red' || this.currentPlayer === 'blue' || this.currentPlayer === 'yellow') {
+            this.executeAIMove();
+        }
+    }
+
+    // 获取所有可能的造兵行动
+    getAllBuildActions() {
+        const buildActions = [];
+        
+        // 计算当前玩家的视野,可用缓存
+        const visibleCells = this.cachedVisibleCells[this.currentPlayer];
+        
+        // 收集当前玩家视野内的可用✡标记空位
+        const availablePositions = [];
+        for (const starPos of this.starPositions) {
+            const {row, col} = starPos;
+            const isMountainPosition = this.mountainPositions.some(pos => pos.row === row && pos.col === col);
+            
+            // 检查位置是否在视野内且为空
+            if (this.board[row][col] === null && !isMountainPosition && visibleCells.includes(`${row},${col}`)) {
+                availablePositions.push({row, col});
+            }
+        }
+        
+        // 如果没有可用的✡标记空位，直接返回空数组
+        if (availablePositions.length === 0) {
+            return buildActions;
+        }
+        
+        // 检查每个可建造的棋子类型
+        for (const [pieceType, cost] of Object.entries(this.buildablePieces)) {
+            // 检查资源是否足够
+            if (this.resources[this.currentPlayer] >= cost) {
+                // 为每个视野内的可用✡标记空位添加造兵行动
+                for (const position of availablePositions) {
+                    buildActions.push({
+                        pieceType: pieceType,
+                        cost: cost,
+                        position: position
+                    });
+                }
+            }
+        }
+        
+        return buildActions;
+    }
+
+    // AI执行移动 - 智能策略优化
+    executeAIMove() {
+        // 定义棋子价值评分
+        const pieceValues = {
+            'jiang': 80,  // 将：最高价值
+            'ju': 50,      // 车：高价值
+            'pao': 35,     // 炮：中高价值
+            'ma': 35,      // 马：中等价值
+            'xiang': 35,   // 象：中等价值
+            'shi': 30,     // 士：中等价值
+            'zu': 30,      // 卒：低价值
+            'liang': 60,   // 粮：资源价值
+            'grain': 30,     // 粮：最低价值,
+            'tree': 0,     // 树：最低价值
+        };
+
+        // 创建带权重的行动列表
+        const weightedActions = [];
+        
+        // 辅助函数：获取所有敌方棋子的危险区域
+        const getDangerZones = (side, real=false) => {
+            const dangerZones = [];
+            
+            // 确保board已初始化
+            if (!this.board || !Array.isArray(this.board)) {
+                return dangerZones;
+            }
+            
+            // 使用玩家棋子列表来遍历敌方棋子，提高查找效率
+            const enemySides = ['green', 'red', 'blue', 'yellow'].filter(s => s !== side);
+            for (const enemySide of enemySides) {
+                // 检查该敌方势力是否还有将存在，如果没有将则跳过该势力
+                const hasJiang = this.playerPieces[enemySide] && 
+                               this.playerPieces[enemySide].some(piece => piece.type === 'jiang');
+                
+                if (!hasJiang) {
+                    continue; // 跳过没有将的敌方势力
+                }
+                
+                if (this.playerPieces[enemySide]) {
+                    // console.log("playerPieces:"+ JSON.stringify(this.playerPieces[enemySide]));
+                    for (const enemyPieceInfo of this.playerPieces[enemySide]) {
+                        const {type, row: ei, col: ej, side: pieceSide} = enemyPieceInfo;
+                        // 判断棋子是否在本方视野内
+                        if(!real){
+                            let visibleCells = this.cachedVisibleCells[side];
+                            if(!visibleCells.includes(`${ei},${ej}`)){
+                                continue;
+                            }
+                        }
+
+                        // 计算这个敌方棋子的攻击范围
+                        for (let targetRow = 0; targetRow < 20; targetRow++) {
+                            for (let targetCol = 0; targetCol < 30; targetCol++) {
+                                if (this.isValidMove(type, ei, ej, targetRow, targetCol, pieceSide)) {
+                                    dangerZones.push(`${targetRow},${targetCol}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return dangerZones;
+        };
+        // console.log(getDangerZones('red'));
+
+        // 计算受保护的格子
+        const getProtectedZones = (side) => {
+            const protectedZones = [];
+            
+            // 获取所有己方棋子
+            const friendlyPieces = this.playerPieces[side] || [];
+            
+            // 遍历所有己方棋子，计算每个棋子的攻击范围
+            for (const piece of friendlyPieces) {
+                const {type, row, col} = piece;
+                
+                // 检查该棋子能攻击到的所有位置
+                for (let i = 0; i < 20; i++) {
+                    for (let j = 0; j < 30; j++) {
+                        // 如果这个位置在当前棋子的攻击范围内，则加入受保护格子集合
+                        if (this.isValidMove(type, row, col, i, j, side)) {
+                            protectedZones.push(`${i},${j}`)
+                        }
+                    }
+                }
+            }
+            
+            return protectedZones;
+        };
+
+        // 辅助函数：检查位置是否在己方保护范围内（使用缓存优化）
+        let protectedZonesCache = null;
+        let protectedZonesCacheSide = null;
+        
+        const isInProtectedRange = (row, col, side) => {
+            // 使用缓存避免重复计算
+            if (protectedZonesCache === null || protectedZonesCacheSide !== side) {
+                protectedZonesCache = getProtectedZones(side);
+                protectedZonesCacheSide = side;
+            }
+            
+            return protectedZonesCache.includes(`${row},${col}`);
+        };
+
+        // 辅助函数：检查位置是否在敌方攻击范围内（使用缓存优化）
+        let dangerZonesCache = null;
+        let dangerZonesCacheReal = null;
+        let dangerZonesCacheSide = null;
+        
+        const isInEnemyRange = (row, col, side) => {
+            // 使用缓存避免重复计算
+            if (dangerZonesCache === null || dangerZonesCacheSide !== side) {
+                dangerZonesCache = getDangerZones(side);
+                dangerZonesCacheSide = side;
+            }
+            return dangerZonesCache.includes(`${row},${col}`);
+        };
+
+        const isRealInEnemyRange = (row, col, side) => {
+            // 使用缓存避免重复计算
+            if (dangerZonesCacheReal === null || dangerZonesCacheSide !== side) {
+                dangerZonesCacheReal = getDangerZones(side, true);
+                dangerZonesCacheSide = side;
+            }
+            return dangerZonesCacheReal.includes(`${row},${col}`);
+        };
+
+        // 辅助函数：计算位置的危险等级（被多少敌方棋子攻击 - 被多少己方棋子保护）
+        const getDangerLevel = (row, col, side) => {
+            // 使用缓存避免重复计算
+            if (dangerZonesCache === null || dangerZonesCacheSide !== side) {
+                dangerZonesCache = getDangerZones(side);
+                dangerZonesCacheSide = side;
+            }
+            // 计算被多少敌方棋子攻击
+            let enemyAttackCount = 0;
+            //遍历dangerZonesCache，判断是否在dangerZones中
+            for (const dangerZone of dangerZonesCache) {
+                if (dangerZone === `${row},${col}`) {
+                    enemyAttackCount++;
+                }
+            }
+
+            // 计算被多少己方棋子保护
+            let friendlyProtectCount = 0;
+            //遍历protectedZonesCache，判断是否在protectedZones中
+            for (const protectedZone of protectedZonesCache) {
+                if (protectedZone === `${row},${col}`) {
+                    friendlyProtectCount++;
+                }
+            }
+        
+            // 危险等级 = 敌方攻击数量 - 己方保护数量
+            return enemyAttackCount - friendlyProtectCount;
+        };
+
+        // 辅助函数：检查✡位置（星位）
+        const getStarPositions = () => {
+            return this.starPositions || [];
+        };
+
+        // 收集不在保护范围内的星位
+        const starsInProtection = [];
+        const StarsNotInProtection = [];
+        for (const star of getStarPositions()) {
+            if (isInProtectedRange(star.row, star.col, this.currentPlayer)) {
+                starsInProtection.push(star);
+            } else{
+                StarsNotInProtection.push(star);                
+            }
+        }
+
+        // 辅助函数：计算到不在保护范围内最近✡的距离
+        const distanceToStar = (row, col) => {
+            let minDistance = Infinity;
+            for (const star of StarsNotInProtection) {
+                const distance = Math.abs(row - star.row) + Math.abs(col - star.col);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+            return minDistance;
+        };
+
+        // 辅助函数：检查所有敌方势力的将位置
+        const getEnemyJiangPositions = (side) => {
+            const enemySides = ['green', 'red', 'blue', 'yellow'].filter(s => s !== side);
+            const jiangPositions = [];
+            
+            for (const enemySide of enemySides) {
+                const enemyPieces = this.playerPieces[enemySide] || [];
+                for (const piece of enemyPieces) {
+                    if (piece.type === 'jiang') {
+                        jiangPositions.push({
+                            side: enemySide,
+                            row: piece.row, 
+                            col: piece.col
+                        });
+                        break; // 每个势力只有一个将，找到即可
+                    }
+                }
+            }
+            
+            return jiangPositions;
+        };
+        
+        // 辅助函数：计算到敌方将的距离
+        const distanceToEnemyJiang = (row, col, side) => {
+            const jiangPositions = getEnemyJiangPositions(side);
+            let minDistance = Infinity;
+            for (const jiang of jiangPositions) {
+                const distance = Math.abs(row - jiang.row) + Math.abs(col - jiang.col);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+            return minDistance;
+        };
+
+        // 使用玩家棋子列表来遍历敌方棋子，提高查找效率
+        const actionType = ['move', 'build'];
+
+        let ignoreBuild = false;
+
+        // 获取视野列表
+        const visibleCells = this.cachedVisibleCells[this.currentPlayer];
+
+
+        // 遍历actionType
+        for (const type of actionType) {
+           if('move' === type){
+                        // 1. 收集并评分所有普通移动行动
+                        // 使用玩家棋子列表获取当前玩家的所有棋子，提高查找效率
+                        const playerPieces = this.playerPieces[this.currentPlayer] || [];
+                        const actualPlayerPieces = playerPieces.map(piece => ({
+                            row: piece.row,
+                            col: piece.col,
+                            type: piece.type
+                        }));
+
+                        for (const piece of actualPlayerPieces) {
+                            let isCurrentPieceInDanger = null;
+                            
+                            //50%概率忽略造兵
+                            if(Math.random() < this.revealMapProbability){
+                                isCurrentPieceInDanger = isRealInEnemyRange(piece.row, piece.col, this.currentPlayer);
+                            } else{
+                                isCurrentPieceInDanger = isInEnemyRange(piece.row, piece.col, this.currentPlayer);
+                            }
+                            
+                            if(isCurrentPieceInDanger){
+                                // 忽略造兵
+                                ignoreBuild = true;
+                            }
+                            // 获取该棋子的视野
+                            const ranges = this.visionRanges[piece.type] || [[0, 0]];
+
+                            for (let i = 0; i < 20; i++) {
+                                for (let j = 0; j < 30; j++) {
+                                    if (this.isValidMove(piece.type, piece.row, piece.col, i, j)) {
+                                        const targetPiece = this.board[i][j];
+                                        let weight = 0;
+
+                                        // 将不能走到敌方攻击范围内
+                                        if (piece.type === 'jiang' && isRealInEnemyRange(i, j, this.currentPlayer)) {
+                                            weight = -99999;
+                                        }
+
+                                        
+                                        if(Math.random() < this.revealMapProbability){
+                                            // 普通棋子避免走到敌方攻击范围内
+                                            if (isRealInEnemyRange(i, j, this.currentPlayer)) {
+                                                weight = - pieceValues[piece.type]*25
+                                            }
+                                        }else{
+                                            if (isInEnemyRange(i, j, this.currentPlayer)) {
+                                                weight = - pieceValues[piece.type]*25
+                                            }
+                                        }
+
+                                        // 遍历所有敌方棋子
+                                        const enemyPieces = this.playerPieces[this.currentPlayer === 'green' ? 'red' : 'green'] || [];
+                                        const actualEnemyPieces = enemyPieces.map(piece => ({
+                                            row: piece.row,
+                                            col: piece.col,
+                                            type: piece.type
+                                        }));
+
+                                        // 遍历所有敌方棋子，计算危险等级
+                                        for (const enemyPiece of actualEnemyPieces) {
+                                                // 检查移动后是否能攻击到这个棋子
+                                                if (this.isValidMove(piece.type, i, j, enemyPiece.row, enemyPiece.col, this.currentPlayer)) {                                                
+                                                    weight += pieceValues[enemyPiece.type]*5; // 优先去吃子
+                                                }
+                                        }
+
+                                        // 如果当前棋子在危险区域，优先移出
+                                        if(Math.random() < this.revealMapProbability){
+                                            if (isCurrentPieceInDanger && (!isRealInEnemyRange(i, j, this.currentPlayer))) {
+                                                // 移出危险区域给予极高权重
+                                                    weight += pieceValues[piece.type]*10;
+                                            }
+                                        }else{
+                                            if (isCurrentPieceInDanger && (!isInEnemyRange(i, j, this.currentPlayer))) {
+                                                // 移出危险区域给予极高权重
+                                                    weight += pieceValues[piece.type]*10;
+                                            }
+                                        }
+
+                                        // 60% 概率
+                                        if(Math.random() > 0.6){
+                                                // 优先扩大视野
+                                                let oldVision = [];
+                                                let newVision = [];
+                                                for (const [di, dj] of ranges) {
+                                                    const oldRow = piece.row + di;
+                                                    const oldCol = piece.col + dj;
+
+                                                    // 检查新位置是否在边界内
+                                                    if(oldRow >= 0 && oldRow < 20 && oldCol >= 0 && oldCol < 30){
+                                                        oldVision.push(`${oldRow},${oldCol}`);
+                                                    }
+                                                    const newRow = i + di;
+                                                    const newCol = j + dj;        
+                                                    // 检查新位置是否在边界内
+                                                    if(newRow >= 0 && newRow < 20 && newCol >= 0 && newCol < 30){
+                                                        newVision.push(`${newRow},${newCol}`);
+                                                    }
+                                                }
+
+                                                if(oldVision.length <= newVision.length){
+                                                    let addVsion = visibleCells.filter(cell => newVision.includes(cell));
+                                                    let subVsion = visibleCells.filter(cell => oldVision.includes(cell));
+                                                    weight += (subVsion.length - addVsion.length) * 2;
+                                                }
+                                        }
+
+
+                                        // 30% 概率
+                                        if(Math.random() > 0.3){
+                                                // 计算敌方jiang的距离
+                                                const newEnemyJiangDistance = distanceToEnemyJiang(i, j, this.currentPlayer);
+                                                const oldEnemyJiangDistance = distanceToEnemyJiang(piece.row, piece.col, this.currentPlayer);
+
+                                                if('jiang' !== piece.type && 'pao' !== piece.type){
+                                                    weight += (oldEnemyJiangDistance - newEnemyJiangDistance) * 2; // 距离越远，权重越小
+                                                }
+                                        }
+                                                
+
+                                        // 30% 概率
+                                        if(Math.random() > 0.3){
+                                                // 检查星位控制和可见策略
+                                                const stars = getStarPositions();
+                                                    
+                                                for (const star of stars) {
+                                                    // 如果这个星位不在保护列表里
+                                                    if (StarsNotInProtection.includes(`${star.row},${star.col}`)) {
+                                                        // 检查移动后是否能攻击到这个星位
+                                                        if (this.isValidMove(piece.type, piece.row, piece.col, star.row, star.col, this.currentPlayer) && 
+                                                            this.isValidMove(piece.type, i, j, star.row, star.col, this.currentPlayer)) {
+                                                            weight += 20; // 能攻击星位，高分
+                                                        }
+                                                    }
+                                                    else {
+                                                        if(this.isValidMove(piece.type, piece.row, piece.col, star.row, star.col, this.currentPlayer) &&
+                                                            (!this.isValidMove(piece.type, i, j, star.row, star.col, this.currentPlayer))
+                                                        ){
+                                                            weight -= 30;
+                                                        }
+                                                    }
+                                                    if(piece.row === star.row && piece.col === star.col){
+                                                        weight += 30;
+                                                    }
+                                                    if(i === star.row && j === star.col){
+                                                        weight -= 30;
+                                                    }
+                                                }
+                                            }
+                                        // 30% 概率
+                                        if(Math.random() > 0.3){        
+                                                // 添加策略，向星位靠近
+                                                let oldDistance = distanceToStar(piece.row, piece.col);
+                                                let newDistance = distanceToStar(i, j);
+
+                                                weight += (oldDistance - newDistance) * 2;
+                                        }
+
+
+                                        // 吃子行动
+                                        if (targetPiece && targetPiece.side !== this.currentPlayer) {
+                                             if(targetPiece.type !== 'tree') ignoreBuild = true;
+                                            
+                                                // 绝对优先吃敌方将
+                                                if (targetPiece.type === 'jiang') {
+                                                    weight += 99999; // 最高优先级
+                                                }
+                    
+                                                weight += pieceValues[targetPiece.type]*20; // 优先吃子
+
+                                                // 50% 概率
+                                                if(Math.random() > 0.3){
+                                                    weight += pieceValues[targetPiece.type]*20; // 双倍优先
+                                                }
+
+                                                weightedActions.push({
+                                                    type: 'capture',
+                                                    piece: piece,
+                                                    target: {row: i, col: j},
+                                                    targetPiece: targetPiece.type,
+                                                    targetSide: targetPiece.side,
+                                                    weight: weight
+                                                });
+                                        }
+
+                                        if(!targetPiece){
+                                            weightedActions.push({
+                                                type: 'move',
+                                                piece: piece,
+                                                target: {row: i, col: j},
+                                                weight: weight
+                                            });
+                                        }
+                                }
+                            }
+                        }
+
+                    
+            }
+
+
+           }
+
+           if('build' === type && !ignoreBuild){
+                // 2. 收集并评分所有造兵行动
+                const buildActions = this.getAllBuildActions();
+                buildActions.forEach(action => {
+                    const pieceType = action.pieceType;
+                    const position = action.position;
+                    let weight = 0;
+                    
+                    // 随机权重
+                    weight += (50 * Math.random() -30); // 提高基础权重，鼓励造兵
+                    
+                    if('liang' === pieceType){
+                        weight -= 120
+                    }
+
+                    // 不能在敌方攻击范围内造兵
+                    if (isRealInEnemyRange(position.row, position.col, this.currentPlayer)) {
+                        weight += pieceValues[pieceType] * -10
+                    }
+
+                    weightedActions.push({
+                        type: 'build',
+                        piece: {row: null, col: null, type: pieceType},
+                        target: position,
+                        cost: action.cost,
+                        weight: weight
+                    });
+                });
+           }
+
+        }
+
+        // 如果没有可执行的行动，切换到下一个玩家
+        if (weightedActions.length === 0) {
+            this.switchPlayer();
+            return;
+        }
+        
+        // 按权重排序，选择权重最高的行动
+        weightedActions.sort((a, b) => b.weight - a.weight);
+    
+        // 选择权重最高的行动
+        const selectedAction = weightedActions[0];
+        // 执行选择的行动
+        this.selectedPiece = selectedAction.piece.type;
+        this.selectedPieceSide = this.currentPlayer;
+        this.selectedRow = selectedAction.piece.row;
+        this.selectedCol = selectedAction.piece.col;
+        // console.log(selectedAction);
+        this.movePiece(selectedAction.target.row, selectedAction.target.col, true);
+    }
+    
+
+    
+    // 更新当前行动方的显示
+    updateCurrentPlayerDisplay() {
+        const currentPlayerElement = document.getElementById('current-player');
+        if (currentPlayerElement) {
+            currentPlayerElement.textContent = `当前行动方: ${this.currentPlayer} (回合: ${this.turnCount})`;
+        }
+    }
+    
+    // 每10回合添加🌾棋子
+    addGrainPieces() {
+        // 遍历所有✡符号的位置
+        for (const star of this.starPositions) {
+            // 检查该位置是否没有棋子
+            if (this.board[star.row][star.col] === null) {
+                // 在该位置放置🌾棋子
+                this.board[star.row][star.col] = { type: 'grain', side: 'gray' };
+            }
+        }
+        
+        // 重新渲染棋盘
+        this.renderBoard();
+    }
+    
+    // 检查棋盘上的粮棋子，为对应玩家增加资源
+    addResourcesFromLiang() {
+        // 遍历棋盘上的所有棋子
+        for (let i = 0; i < 20; i++) {
+            for (let j = 0; j < 30; j++) {
+                const piece = this.board[i][j];
+                // 检查是否是粮棋子
+                if (piece && piece.type === 'liang') {
+                    // 为对应玩家增加2点资源
+                    this.resources[piece.side] += 2;
+                }
+                // 检查是否是jiang棋子
+                if (piece && piece.type === 'jiang') {
+                    // 为对应玩家增加1点资源
+                    this.resources[piece.side] += 5;
+                }
+            }
+        }
+        
+        // 重新渲染资源界面
+        this.renderResources();
+    }
+    
+    // 检查是否有足够的资源进行移动
+    hasEnoughResourcesForMove(pieceType, playerSide) {
+        // 获取该棋子的行动消耗
+        const moveCost = this.moveCosts[pieceType] || 0;
+        // 检查玩家是否有足够的资源
+        return this.resources[playerSide] >= moveCost;
+    }
+    
+    // 扣除行动消耗
+    deductMoveCost(pieceType, playerSide) {
+        // 获取该棋子的行动消耗
+        const moveCost = this.moveCosts[pieceType] || 0;
+        // 扣除资源
+        this.resources[playerSide] -= moveCost;
+        // 重新渲染资源界面
+        this.renderResources();
+    }
+    
+    // 检查获胜条件
+    checkWinCondition() {
+        // 从各方棋子列表中查找将，避免遍历整个棋盘
+        let greenJiangExists = false;
+        let jiangCount = 0;
+        let remainingSide = null;
+        
+        // 遍历所有玩家的棋子列表
+        for (const [side, pieces] of Object.entries(this.playerPieces)) {
+            const jiangPieces = pieces.filter(p => p.type === 'jiang');
+            jiangCount += jiangPieces.length;
+            
+            if (jiangPieces.length > 0) {
+                remainingSide = side;
+                
+                // 检查是否有绿方将
+                if (side === 'green') {
+                    greenJiangExists = true;
+                }
+            }
+        }
+        
+        // 如果绿方将被吃，游戏结束
+        if (!greenJiangExists) {
+            alert('绿方将被吃！游戏结束！');
+            return;
+        }
+        
+        // 如果只剩一个将，则该方获胜
+        if (jiangCount === 1) {
+            alert(`${remainingSide}方势力获胜！游戏结束。`)
+        }
+    }
+    
+}
+
+// 开始页面相关函数
+let gameInstance = null;
+
+function startGame() {
+    // 读取游戏配置
+    const config = {
+        aiLevels: {
+            red: document.getElementById('red-ai-level').value,
+            yellow: document.getElementById('yellow-ai-level').value,
+            blue: document.getElementById('blue-ai-level').value
+        },
+        starQuantity: document.getElementById('star-quantity').value,
+        treeQuantity: document.getElementById('tree-quantity').value
+    };
+    
+    // 隐藏开始页面
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('game-container').style.display = 'block';
+    
+    // 初始化游戏并传递配置
+    gameInstance = new ChineseChessGame(config);
+}
+
+function showRules() {
+    document.getElementById('rules-modal').style.display = 'flex';
+}
+
+function closeRules() {
+    document.getElementById('rules-modal').style.display = 'none';
+}
+
+
+
+// 点击模态框外部关闭规则
+window.onclick = function(event) {
+    const modal = document.getElementById('rules-modal');
+    if (event.target === modal) {
+        closeRules();
+    }
+}
+
+// 修改初始化逻辑，默认显示开始页面
+document.addEventListener('DOMContentLoaded', () => {
+    // 默认隐藏游戏主页面
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('start-screen').style.display = 'flex';
+});
+
+// 全局函数，用于HTML中的开图作弊复选框
+function toggleRevealMap(checkbox) {
+    if (gameInstance) {
+        gameInstance.revealMap = checkbox.checked;
+    }
+}
+</script>
+
+
+
+
+
+
+
+
+
