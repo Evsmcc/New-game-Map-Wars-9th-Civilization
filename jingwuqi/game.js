@@ -20,7 +20,7 @@
   var riverTopY = margin + stepY * 4
   var riverBottomY = margin + stepY * 5
   function drawBoard() {
-    ctx.fillStyle = '#fff'
+    ctx.fillStyle = '#f0f9e8'
     ctx.fillRect(0, 0, w, h)
     ctx.fillStyle = '#eaf6ff'
     ctx.fillRect(margin, riverTopY, innerW, riverBottomY - riverTopY)
@@ -560,7 +560,7 @@
   function tickAIMove() {
     if (gameOver) return
     var actor = currentActor()
-    if (!actorAutoEnabled(actor)) { setTimeout(tickAIMove, 0); return }
+    if (!actorAutoEnabled(actor)) { setTimeout(tickAIMove, 1000); return }
     var all = []
     for (var i = 0; i < pieces.length; i++) {
       var p = pieces[i]
@@ -583,7 +583,7 @@
       moveCount += 1
       turnIdx = (turnIdx + 1) % turnOrder.length
       render()
-      setTimeout(tickAIMove, 0)
+      setTimeout(tickAIMove, 1000)
       return
     }
     var mover = pieces[mv.i]
@@ -620,7 +620,7 @@
       turnIdx = (turnIdx + 1) % turnOrder.length
     }
     render()
-    if (!gameOver) setTimeout(tickAIMove, 0)
+    if (!gameOver) setTimeout(tickAIMove, 1000)
   }
   function render() {
     drawBoard()
