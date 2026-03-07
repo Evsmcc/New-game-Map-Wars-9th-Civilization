@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>象棋变体棋盘</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <div class="app">
+      <!-- <h1>象棋变体棋盘（11列 × 10行，节点落子，含河道）</h1> -->
+      <div class="board-wrap">
+        <div class="sidebar">
+          <div class="panel-title">对局信息</div>
+          <div class="info-row">
+            <span>回合：</span><strong id="turn-count">1</strong>
+          </div>
+          <div class="info-row">
+            <span>行动方：</span><strong id="current-turn">魏</strong>
+          </div>
+          <div class="info-row">
+            <span>胜负：</span><strong id="result">进行中</strong>
+          </div>
+          <div class="divider"></div>
+          <div class="info-row">
+            <label class="toggle">
+              <input type="checkbox" id="auto-wei">
+              <span style="color: black;">魏托管</span>
+            </label>
+          </div>
+          <div class="info-row">
+            <label class="toggle">
+              <input type="checkbox" id="auto-wu">
+              <span style="color: rgb(31, 177, 217);">吴托管</span>
+            </label>
+          </div>
+          <div class="info-row">
+            <label class="toggle">
+              <input type="checkbox" id="auto-shu">
+              <span style="color: rgb(224, 21, 157);">蜀托管</span>
+            </label>
+          </div>
+          <div class="divider"></div>
+          <div class="actions">
+            <button id="btn-reset" class="btn">重新开始</button>
+          </div>
+        </div>
+        <canvas id="board" width="800" height="560"></canvas>
+        <div class="sidebar move-guide">
+          <div class="panel-title">棋子移动说明</div>
+          <div class="move-rule">
+            <div class="rule-title">车</div>
+            <div class="rule-desc">横走竖走，不限步数，不能越过棋子</div>
+          </div>
+          <div class="move-rule">
+            <div class="rule-title">马</div>
+            <div class="rule-desc">走日字，有蹩马腿限制</div>
+          </div>
+          <div class="move-rule">
+            <div class="rule-title">相/象</div>
+            <div class="rule-desc">走田字，有塞象眼限制，不能过河</div>
+          </div>
+          <div class="move-rule">
+            <div class="rule-title">仕/士</div>
+            <div class="rule-desc">斜走一格，只能在九宫格内活动</div>
+          </div>
+          <div class="move-rule">
+            <div class="rule-title">帅/曹</div>
+            <div class="rule-desc">横走竖走，每次一格</div>
+          </div>
+          <div class="move-rule">
+            <div class="rule-title">炮</div>
+            <div class="rule-desc">横走竖走，不限步数，吃子需隔一个棋子</div>
+          </div>
+          <div class="move-rule">
+            <div class="rule-title">兵/卒</div>
+            <div class="rule-desc">未过河只能前进，过河后可左右移动</div>
+          </div>
+          <div class="move-rule">
+            <div class="rule-title">吴/蜀</div>
+            <div class="rule-desc">可横走竖走一格，也可走马步</div>
+          </div>
+        </div>
+      </div>
+      <div id="faction-overlay" class="modal-overlay" aria-hidden="true">
+        <div class="modal">
+          <div class="modal-title">选择你的势力 <span style="color: rgb(224, 21, 31);">魏 vs 吴+蜀</span></div>
+          <div class="modal-actions">
+            <button id="choose-wei" class="btn" style="color: black;">魏（黑色）</button>
+            <button id="choose-wu" class="btn" style="color: rgb(31, 177, 217);">吴（红+蓝）</button>
+            <button id="choose-shu" class="btn" style="color: rgb(224, 21, 157);">蜀（红+紫）</button>
+          </div>
+          <div class="modal-tip">选择后，其它两个势力将自动托管</div>
+        </div>
+      </div>
+    </div>
+    <script src="./game.js"></script>
+  </body>
+</html>
