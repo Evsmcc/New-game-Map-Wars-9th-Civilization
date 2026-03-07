@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>简易围棋小游戏 11x11</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5dc; text-align: center; }
+    #board { display: inline-block; margin: 20px auto; background: #deb887; border: 2px solid #333; }
+    .row { display: flex; }
+    .cell {
+      width: 36px; height: 36px; border: 1px solid #333;
+      position: relative; box-sizing: border-box;
+    }
+    .stone {
+      width: 28px; height: 28px; border-radius: 50%;
+      position: absolute; top: 4px; left: 4px;
+    }
+    .black { background: #111; }
+    .white { background: #fff; border: 1px solid #aaa; }
+    .third { background: #888; border: 1px solid #444; }
+    .fourth { background: #0cf; border: 1px solid #088; }
+    #status { margin: 10px; font-size: 18px; }
+    #restart { margin: 10px; padding: 6px 18px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h2>简易围棋小游戏（11x11）</h2>
+  <div id="status"></div>
+  <div id="score" style="margin:10px;font-size:18px;"></div>
+  <div style="display:flex;justify-content:center;align-items:flex-start;">
+    <div style="margin-right:20px;text-align:left;line-height:1.8;font-size:16px;max-width:220px;">
+      <h3 style="margin-top: 0; color: #333; margin-bottom: 15px;">更多棋类游戏</h3>
+      <div style="margin-bottom: 20px;">
+        <p><a href="https://dd6327ce-209b-4f66-9420-517229f01bbf.wangye.domolo.cn/p/5egnxy2m83.html" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold;">中国象棋与时俱进版</a></p>
+        <p><a href="https://dd6327ce-209b-4f66-9420-517229f01bbf.wangye.domolo.cn/p/5egnxo2m83.html" target="_blank" style="color: #0066cc; text-decoration: none; font-weight: bold;">围棋新时代版</a></p>
+      </div>
+      <b>游戏规则：</b><br>
+      每吃掉其它方棋子得1分，先得20分棋子方获胜<br>
+      <span style="color:#888;">灰色为第三方棋子，可吃</span><br>
+      <span style="color:#0cf;">蓝色为地形，不可吃</span><br>
+      <span style="color:#00a">智障电脑，白棋得分X1</span><br>
+      <span style="color:#00a">普通电脑，白棋得分X2</span><br>
+      <span style="color:#00a">精英电脑，白棋得分X3</span><br>
+      <span style="color:#00a">疯狂电脑，白棋得分X4</span><br>
+      <div style="margin-top:10px;">
+        <b>难度选择：</b><br>
+        <button class="difficulty-btn" data-mult="1" onclick="setDifficulty(1)">智障</button>
+        <button class="difficulty-btn" data-mult="2" onclick="setDifficulty(2)">普通</button>
+        <button class="difficulty-btn" data-mult="3" onclick="setDifficulty(3)">精英</button>
+        <button class="difficulty-btn" data-mult="4" onclick="setDifficulty(4)">疯狂</button>
+      </div>
+    </div>
+    <div id="board"></div>
+  </div>
+  <button id="restart">重开一局</button>
+  <script>
+    const SIZE = 11;
+    const EMPTY = 0, BLACK = 1, WHITE = 2, THIRD = 3, FOURTH = 4;
+    let board, turn, gameOver;
+    let blackScore = 0, whiteScore = 0;
+    let whiteScoreMultiplier = 1;
+
+    // 难度按钮高亮色
+    const DIFFICULTY_COLORS = {
+      1: '#bbb',    // 智障 灰色
+      2: '#4af',    // 普通 蓝色
+      3: '#ffa500', // 精英 橙色
+      4: '#f44'     // 疯狂 红色
+    };
+
+    function setDifficulty(mult) {
+      whiteScoreMultiplier = mult;
+      document.getElementById('status').textContent = `难度已切换，当前白棋得分X${mult}`;
+      // 按钮高亮
+      const btns = document.querySelectorAll('.difficulty-btn');
+      btns.forEach(btn => {
+        if (parseInt(btn.dataset.mult) === mult) {
+          btn.style.background = DIFFICULTY_COLORS[mult];
+          btn.style.color = '#222';
+          btn.style.fontWeight = 'bold';
+          btn.style.border = '2px solid #333';
+        } else {
+          btn.style.background = '';
+          btn.style.color = '';
+          btn.style.fontWeight = '';
+          btn.style.border = '';
+        }
+      });
+    }
+
+    function initBoard() {
+      board = Array.from({length: SIZE}, () => Array(SIZE).fill(EMPTY));
+      // 随机放置12颗第四方棋子（青色，不可被吃）
+      let placed4 = 0;
+      while (placed4 < 12) {
+        let x = Math.floor(Math.random() * SIZE);
+        let y = Math.floor(Math.random() * SIZE);
+        if (board[x][y] === EMPTY) {
+          board[x][y] = FOURTH;
+          placed4++;
+        }
+      }
+      // 随机放置8颗白棋
+      let placedWhite = 0;
+      while (placedWhite < 8) {
+        let x = Math.floor(Math.random() * SIZE);
+        let y = Math.floor(Math.random() * SIZE);
+        if (board[x][y] === EMPTY) {
+          board[x][y] = WHITE;
+          placedWhite++;
+        }
+      }
+      // 随机放置15颗第三方棋子（可被吃）
+      let placed = 0;
+      while (placed < 15) {
+        let x = Math.floor(Math.random() * SIZE);
+        let y = Math.floor(Math.random() * SIZE);
+        if (board[x][y] === EMPTY) {
+          board[x][y] = THIRD;
+          placed++;
+        }
+      }
+      turn = BLACK;
+      gameOver = false;
+      blackScore = 0;
+      whiteScore = 0;
+      updateStatus();
+      updateScore();
+      renderBoard();
+    }
+
+    function renderBoard() {
+      const boardDiv = document.getElementById('board');
+      boardDiv.innerHTML = '';
+      for (let i = 0; i < SIZE; i++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+        for (let j = 0; j < SIZE; j++) {
+          const cellDiv = document.createElement('div');
+          cellDiv.className = 'cell';
+          cellDiv.dataset.x = i;
+          cellDiv.dataset.y = j;
+          if (board[i][j] !== EMPTY) {
+            const stone = document.createElement('div');
+            if (board[i][j] === BLACK) stone.className = 'stone black';
+            else if (board[i][j] === WHITE) stone.className = 'stone white';
+            else if (board[i][j] === THIRD) stone.className = 'stone third';
+            else if (board[i][j] === FOURTH) stone.className = 'stone fourth';
+            cellDiv.appendChild(stone);
+          }
+          cellDiv.onclick = handleClick;
+          rowDiv.appendChild(cellDiv);
+        }
+        boardDiv.appendChild(rowDiv);
+      }
+    }
+
+    function handleClick(e) {
+      if (gameOver || turn !== BLACK) return;
+      const x = +this.dataset.x, y = +this.dataset.y;
+      if (board[x][y] !== EMPTY) return;
+      board[x][y] = BLACK;
+      capture(x, y, BLACK);
+      if (blackScore >= 20) {
+        gameOver = true;
+        updateStatus('你获胜！');
+        updateScore();
+        renderBoard();
+        return;
+      }
+      turn = WHITE;
+      updateStatus();
+      updateScore();
+      renderBoard();
+      if (!gameOver) setTimeout(aiMove, 600);
+    }
+
+    function aiMove() {
+      // 递归模拟3步（白-黑-白），选择最大化白棋得分的策略
+      let bestScore = -Infinity;
+      let bestMoves = [];
+      for (let i = 0; i < SIZE; i++) {
+        for (let j = 0; j < SIZE; j++) {
+          if (board[i][j] === EMPTY) {
+            let tempBoard = board.map(row => row.slice());
+            // 白棋下
+            let eat1 = simulateCapture(tempBoard, i, j, WHITE);
+            let selfKill1 = !hasLibertySim(tempBoard, i, j, WHITE, {});
+            if (selfKill1) continue; // 不选自杀
+            let score1 = eat1;
+            // 黑棋应对
+            let minWhiteScore = Infinity;
+            for (let pi = 0; pi < SIZE; pi++) {
+              for (let pj = 0; pj < SIZE; pj++) {
+                if (tempBoard[pi][pj] === EMPTY) {
+                  let tempBoard2 = tempBoard.map(row => row.slice());
+                  // 黑棋下
+                  let eat2 = simulateCapture(tempBoard2, pi, pj, BLACK);
+                  let selfKill2 = !hasLibertySim(tempBoard2, pi, pj, BLACK, {});
+                  let score2 = -eat2;
+                  if (selfKill2) score2 -= 1; // 黑棋自杀，白棋得分
+                  // 白棋再下
+                  let maxWhiteScore2 = -Infinity;
+                  for (let wi = 0; wi < SIZE; wi++) {
+                    for (let wj = 0; wj < SIZE; wj++) {
+                      if (tempBoard2[wi][wj] === EMPTY) {
+                        let tempBoard3 = tempBoard2.map(row => row.slice());
+                        // 白棋下
+                        let eat3 = simulateCapture(tempBoard3, wi, wj, WHITE);
+                        let selfKill3 = !hasLibertySim(tempBoard3, wi, wj, WHITE, {});
+                        if (selfKill3) continue;
+                        let score3 = eat3;
+                        if (score3 > maxWhiteScore2) maxWhiteScore2 = score3;
+                      }
+                    }
+                  }
+                  let totalScore = score1 + score2 + (isFinite(maxWhiteScore2) ? maxWhiteScore2 : 0);
+                  if (totalScore < minWhiteScore) minWhiteScore = totalScore;
+                }
+              }
+            }
+            if (minWhiteScore > bestScore) {
+              bestScore = minWhiteScore;
+              bestMoves = [[i, j]];
+            } else if (minWhiteScore === bestScore) {
+              bestMoves.push([i, j]);
+            }
+          }
+        }
+      }
+      let move;
+      if (bestMoves.length > 0) {
+        move = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+      } else {
+        // 没有可下位置
+        gameOver = true;
+        updateStatus();
+        updateScore();
+        return;
+      }
+      let [x, y] = move;
+      board[x][y] = WHITE;
+      capture(x, y, WHITE);
+      if (whiteScore >= 20) {
+        gameOver = true;
+        updateStatus('电脑获胜！');
+        updateScore();
+        renderBoard();
+        return;
+      }
+      turn = BLACK;
+      updateStatus();
+      updateScore();
+      renderBoard();
+    }
+
+    // 获取模拟落子后能吃掉的棋子数
+    function getCapturedCount(tempBoard, x, y, color) {
+      // 检查四周的对方和第三方棋子
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      let opps = color === BLACK ? [WHITE, THIRD] : [BLACK, THIRD];
+      let count = 0;
+      for (let [dx, dy] of dirs) {
+        let nx = x + dx, ny = y + dy;
+        if (inBoard(nx, ny) && opps.includes(tempBoard[nx][ny]) && tempBoard[nx][ny] !== FOURTH) {
+          if (!hasLibertySim(tempBoard, nx, ny, tempBoard[nx][ny], {})) {
+            count += getGroupCount(tempBoard, nx, ny, tempBoard[nx][ny], {});
+          }
+        }
+      }
+      return count;
+    }
+    // 判断模拟棋盘(x, y)是否有气
+    function hasLibertySim(tempBoard, x, y, color, visited) {
+      let key = x + ',' + y;
+      if (visited[key]) return false;
+      visited[key] = true;
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for (let [dx, dy] of dirs) {
+        let nx = x + dx, ny = y + dy;
+        if (!inBoard(nx, ny)) continue;
+        if (tempBoard[nx][ny] === EMPTY) return true;
+        if (tempBoard[nx][ny] === color && hasLibertySim(tempBoard, nx, ny, color, visited)) return true;
+      }
+      return false;
+    }
+    // 获取一块棋子的数量
+    function getGroupCount(tempBoard, x, y, color, visited) {
+      let key = x + ',' + y;
+      if (visited[key]) return 0;
+      visited[key] = true;
+      let count = 1;
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for (let [dx, dy] of dirs) {
+        let nx = x + dx, ny = y + dy;
+        if (inBoard(nx, ny) && tempBoard[nx][ny] === color) {
+          count += getGroupCount(tempBoard, nx, ny, color, visited);
+        }
+      }
+      return count;
+    }
+
+    // 判断提子
+    function capture(x, y, color) {
+      // 检查四周的对方和第三方棋子
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      let opps = color === BLACK ? [WHITE, THIRD] : [BLACK, THIRD];
+      for (let [dx, dy] of dirs) {
+        let nx = x + dx, ny = y + dy;
+        if (inBoard(nx, ny) && opps.includes(board[nx][ny]) && board[nx][ny] !== FOURTH) {
+          if (!hasLiberty(nx, ny, board[nx][ny], {})) {
+            let removed = removeGroup(nx, ny, board[nx][ny]);
+            if (removed > 0) {
+              if (color === BLACK) blackScore += removed;
+              else whiteScore += removed * whiteScoreMultiplier;
+            }
+          }
+        }
+      }
+      // 检查自己是否自杀（无气）
+      if (!hasLiberty(x, y, color, {})) {
+        // 自杀，算对方得分
+        let removed = removeGroup(x, y, color);
+        if (removed > 0) {
+          if (color === BLACK) whiteScore += removed * whiteScoreMultiplier;
+          else if (color === WHITE) blackScore += removed;
+        }
+      }
+    }
+
+    // 判断(x, y)所在的连通棋子是否有气
+    function hasLiberty(x, y, color, visited) {
+      let key = x + ',' + y;
+      if (visited[key]) return false;
+      visited[key] = true;
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for (let [dx, dy] of dirs) {
+        let nx = x + dx, ny = y + dy;
+        if (!inBoard(nx, ny)) continue;
+        if (board[nx][ny] === EMPTY) return true;
+        if (board[nx][ny] === color && hasLiberty(nx, ny, color, visited)) return true;
+      }
+      return false;
+    }
+
+    // 移除(x, y)所在的连通棋子，返回移除的棋子数
+    function removeGroup(x, y, color) {
+      const stack = [[x, y]];
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      let removed = 0;
+      while (stack.length) {
+        let [cx, cy] = stack.pop();
+        if (board[cx][cy] !== color) continue;
+        board[cx][cy] = EMPTY;
+        removed++;
+        for (let [dx, dy] of dirs) {
+          let nx = cx + dx, ny = cy + dy;
+          if (inBoard(nx, ny) && board[nx][ny] === color) {
+            stack.push([nx, ny]);
+          }
+        }
+      }
+      return removed;
+    }
+
+    // 模拟落子并返回吃子数（不计自杀）
+    function simulateCapture(tempBoard, x, y, color) {
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      let opps = color === BLACK ? [WHITE, THIRD] : [BLACK, THIRD];
+      let count = 0;
+      tempBoard[x][y] = color;
+      for (let [dx, dy] of dirs) {
+        let nx = x + dx, ny = y + dy;
+        if (inBoard(nx, ny) && opps.includes(tempBoard[nx][ny]) && tempBoard[nx][ny] !== FOURTH) {
+          if (!hasLibertySim(tempBoard, nx, ny, tempBoard[nx][ny], {})) {
+            count += getGroupCount(tempBoard, nx, ny, tempBoard[nx][ny], {});
+            removeGroupSim(tempBoard, nx, ny, tempBoard[nx][ny]);
+          }
+        }
+      }
+      return count;
+    }
+    // 模拟移除棋子
+    function removeGroupSim(tempBoard, x, y, color) {
+      const stack = [[x, y]];
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      while (stack.length) {
+        let [cx, cy] = stack.pop();
+        if (tempBoard[cx][cy] !== color) continue;
+        tempBoard[cx][cy] = EMPTY;
+        for (let [dx, dy] of dirs) {
+          let nx = cx + dx, ny = cy + dy;
+          if (inBoard(nx, ny) && tempBoard[nx][ny] === color) {
+            stack.push([nx, ny]);
+          }
+        }
+      }
+    }
+
+    function inBoard(x, y) {
+      return x >= 0 && x < SIZE && y >= 0 && y < SIZE;
+    }
+
+    function updateStatus(msg) {
+      const status = document.getElementById('status');
+      if (msg) {
+        status.textContent = msg;
+      } else if (gameOver) {
+        status.textContent = '游戏结束！';
+      } else {
+        status.textContent = turn === BLACK ? '你的回合（黑棋）' : '电脑回合（白棋）';
+      }
+    }
+
+    function updateScore() {
+      document.getElementById('score').textContent = `黑棋得分：${blackScore}    白棋得分：${whiteScore}`;
+    }
+
+    document.getElementById('restart').onclick = function() {
+      initBoard();
+    };
+
+    // 初始化
+    setDifficulty(3);
+    initBoard();
+  </script>
+</body>
+</html>
