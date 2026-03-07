@@ -1,11 +1,11 @@
 var games=[
-    {id:"qiognhuiyilin",title:"新型象棋-穹辉伊凌",categories:["杀王棋","最新排行"],desc:"由穹辉伊凌所创的象棋变体棋。",href:"qionghuiyiling\\xinxingxiangqi.html",image:"qionghuiyiling/xinxingxiangqi.jpg"},
-    {id:"jingwuqi",title:"三人竞武棋-赤壁之战",categories:["杀王棋","最新排行"],desc:"由网友985财神扑克所创，支持2打1的象棋游戏。",href:"jingwuqi\\index.html",image:"jingwuqi/jwq.jpg"},
+    {id:"qiognhuiyilin",title:"新型象棋-穹辉伊凌",categories:["杀王棋","最新排行"],desc:"由穹辉伊凌所创的象棋变体棋。",href:"qionghuiyiling\\xinxingxiangqi.html",image:"qionghuiyiling/xinxingxiangqi.JPG"},
+    {id:"jingwuqi",title:"三人竞武棋-赤壁之战",categories:["杀王棋","最新排行"],desc:"由网友985财神扑克所创，支持2打1的象棋游戏。",href:"jingwuqi\\index.html",image:"jingwuqi/jwq.JPG"},
     {id:"heiansenlin",title:"四国象棋-黑暗森林",categories:["杀王棋","热门排行"],desc:"增加了战争迷雾，在黑暗中发育和偷袭。",href:"heiansenlin\\game.html",image:"heiansenlin/sgxq.jpg"},
-    {id:"xinjizhengba",title:"战争荣耀-星际争霸",categories:["杀王棋","热门排行"],desc:"有人、神、虫三个种族，增加远程攻击、飞行能力、攻击间隔。",href:"diguoshidai\\game.html",image:"xingjizhengba/xjzb.jpg"},    
-    {id:"jiujiewenming",title:"领土之争-九阶文明",categories:["落子棋","热门排行"],desc:"简单易上手，前期发育、升级、布局，后期进攻、补救。",href:"jiujiewenming\\game.html",image:"jiujiewenming/jjwm.jpg"},
+    {id:"xinjizhengba",title:"战争荣耀-星际争霸",categories:["杀王棋","热门排行"],desc:"有人、神、虫三个种族，增加远程攻击、飞行能力、攻击间隔。",href:"diguoshidai\\game.html",image:"xingjizhengba/xjzb.JPG"},    
+    {id:"jiujiewenming",title:"领土之争-九阶文明",categories:["落子棋","热门排行"],desc:"简单易上手，前期发育、升级、布局，后期进攻、补救。",href:"jiujiewenming\\game.html",image:"jiujiewenming/jjwm.JPG"},
     {id:"diguoshidai",title:"战争象棋-帝国时代",categories:["杀王棋","热门排行"],desc:"新时代象棋，增加了坦、飞、机、运等新时代武器。",href:"diguoshidai\\game.html",image:"diguoshidai/dgsd.jpg"},
-    {id:"yuansuzhanzheng",title:"四色围棋-元素战争",categories:["落子棋","热门排行"],desc:"围棋的基础上增加了场地棋子和第三方棋子。",href:"jiujiewenming\\game.html",image:"yuansuzhanzheng/yszz.jpg"},
+    {id:"yuansuzhanzheng",title:"四色围棋-元素战争",categories:["落子棋","热门排行"],desc:"围棋的基础上增加了场地棋子和第三方棋子。",href:"jiujiewenming\\game.html",image:"yuansuzhanzheng/yszz.JPG"},
 
     // {id:"king-chess",title:"杀王棋",categories:["杀王棋","热门排行"],desc:"以击杀对方王为目标的对战玩法。",href:"heiansenlin/sgxq.jpg"},
     // {id:"gomoku",title:"落子棋",categories:["落子棋","最新排行"],desc:"先连成五子直线的经典回合制。",href:"gomoku.html",image:"heiansenlin/sgxq.jpg"},
