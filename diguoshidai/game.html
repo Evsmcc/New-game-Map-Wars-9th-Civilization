@@ -1,0 +1,2761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>中国象棋小游戏</title>
+</head>
+<body>
+            <h1>中国象棋之帝国时代</h1>
+    <div id="ai-level-group">
+      <span>黑棋难度：</span>
+      <button class="ai-level-btn" data-level="easy">智障</button>
+      <button class="ai-level-btn" data-level="normal">普通</button>
+      <button class="ai-level-btn" data-level="elite">精英</button>
+      <button class="ai-level-btn" data-level="crazy">疯狂</button>
+    </div>
+    <div id="main-container">
+      <div id="game-info"></div>
+      <div id="board-container">
+        <div id="board"></div>
+      </div>
+      <div id="spawn-container"></div>
+    </div>
+    <!-- 重新开始按钮将由JS动态插入到兵营区下方 -->
+</body>
+</html> 
+<style>
+body {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    background: #f5f5dc;
+    text-align: center;
+    margin: 0;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* 广告链接样式 - 只在桌面端显示 */
+#ad-links {
+    display: inline-block;
+    margin-left: 10px;
+}
+
+#ad-links a {
+    color: #0066cc;
+    text-decoration: none;
+    margin: 0 5px;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+
+#ad-links a:hover {
+    background-color: #e6f3ff;
+    text-decoration: underline;
+}
+
+/* 桌面端布局 */
+#ai-level-group {
+    margin-bottom: 10px;
+}
+
+#main-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+#game-info {
+    width: 260px;
+    height: 240px;
+    background: #f8f8f8;
+    border: 2px solid #2196f3;
+    border-radius: 8px;
+    margin-right: 8px;
+    padding: 12px 16px;
+    font-size: 16px;
+    color: #222;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow-y: auto;
+    white-space: pre-line;
+    line-height: 1.7;
+}
+
+#board-container {
+    flex: 1;
+}
+
+#spawn-container {
+    display: none; /* 桌面端隐藏spawn-container */
+}
+
+#board {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+#board-area {
+    width: 432px;
+    height: 480px;
+    min-width: 432px;
+    min-height: 480px;
+    max-width: 432px;
+    max-height: 480px;
+    box-sizing: content-box;
+    background: #fff8dc;
+    border: 2px solid #333;
+    display: inline-block;
+}
+
+.row {
+    display: flex;
+}
+
+.cell {
+    width: 48px;
+    height: 48px;
+    border: 1px solid #aaa;
+    box-sizing: border-box;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    user-select: none;
+}
+
+.cell.selected {
+    background: #ffe066;
+    z-index: 3;
+}
+
+.cell.moveable {
+    background: #b3e5fc;
+    z-index: 2;
+}
+
+.piece {
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    line-height: 38px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 22px;
+    display: inline-block;
+}
+
+.piece.red {
+    color: #d00;
+    border: 2px solid #d00;
+    background: #fff0f0;
+}
+
+.piece.black {
+    color: #222;
+    border: 2px solid #222;
+    background: #f0f0f0;
+}
+
+#spawn-area {
+    min-width: 220px;
+    max-width: 260px;
+    width: 240px;
+    padding: 8px 0 0 0;
+    background: #f8faff;
+    border: 1px solid #cce;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px #eef2fa44;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-height: 420px;
+    overflow-y: auto;
+    position: relative;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+/* 桌面端重新开始按钮样式 */
+#restart-btn {
+    margin-top: 20px;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 8px 16px;
+    display: inline-block;
+    width: auto;
+    border-radius: 4px;
+    background: #2196f3;
+    color: #fff;
+    border: 1px solid #1565c0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+#restart-btn:active {
+    background: #1565c0;
+}
+
+#undo-btn {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 6px 12px;
+    display: inline-block;
+    width: auto;
+    border-radius: 4px;
+    background: #ff9800;
+    color: #fff;
+    border: 1px solid #e65100;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+#undo-btn:active {
+    background: #e65100;
+}
+
+#spawn-area #restart-btn {
+    margin-top: 20px;
+    font-size: 26px;
+    font-weight: bold;
+    padding: 12px 40px;
+    display: block;
+    width: 100%;
+    border-radius: 8px;
+    background: #2196f3;
+    color: #fff;
+    border: 2px solid #1565c0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+#spawn-area #restart-btn:active {
+    background: #1565c0;
+}
+
+#spawn-area #restart-btn {
+    margin-bottom: 24px;
+}
+
+.spawn-btn-list {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+}
+
+.spawn-btn {
+    margin: 2px 4px;
+    padding: 4px 12px;
+    border: 1px solid #99c;
+    border-radius: 4px;
+    background: #e3e6ff;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    min-width: 60px;
+    box-sizing: border-box;
+}
+
+.spawn-btn.selected {
+    background: #b3e5fc;
+    border: 2px solid #039be5;
+    font-weight: bold;
+}
+
+#spawn-area > div {
+    margin-bottom: 4px;
+}
+
+.spawn-desc {
+    margin: 8px 0 8px 0;
+    min-height: 40px; /* 增加最小高度以显示两排文字 */
+    color: #333;
+    font-size: 15px;
+    background: #f3f7ff;
+    border-radius: 4px;
+    padding: 6px 8px; /* 增加上下内边距 */
+    border: 1px solid #dde;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    word-break: break-all;
+    line-height: 1.4; /* 增加行高 */
+}
+
+.palace-line {
+    border: 1px solid #1ecb1e !important;
+}
+
+.river-line {
+    border: 1px solid #1e4ecb !important;
+}
+
+.palace {
+    background: none !important;
+    border: none;
+}
+
+.river {
+    background: none !important;
+    border: none;
+}
+
+.palace-diag1, .palace-diag2 {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    pointer-events: none;
+}
+
+.palace-diag1 {
+    left: 0; top: 0;
+    border-left: 2px solid #7ecb7e;
+    border-bottom: 2px solid #7ecb7e;
+    transform: skew(-45deg);
+}
+
+.palace-diag2 {
+    left: 0; top: 0;
+    border-right: 2px solid #7ecb7e;
+    border-bottom: 2px solid #7ecb7e;
+    transform: skew(45deg);
+}
+
+.ai-level-btn {
+    padding: 4px 16px;
+    margin-right: 6px;
+    border: 1px solid #888;
+    background: #f0f0f0;
+    color: #333;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.ai-level-btn.selected {
+    background: #4caf50;
+    color: #fff;
+    border: 2px solid #388e3c;
+}
+
+.ai-level-btn[data-level="easy"].selected { background: #bdbdbd; color: #222; border-color: #757575; }
+.ai-level-btn[data-level="normal"].selected { background: #2196f3; color: #fff; border-color: #1565c0; }
+.ai-level-btn[data-level="elite"].selected { background: #ff9800; color: #fff; border-color: #e65100; }
+.ai-level-btn[data-level="crazy"].selected { background: #e53935; color: #fff; border-color: #b71c1c; }
+
+/* 手机端适配 */
+@media (max-width: 768px) {
+    body {
+        padding: 0; /* 完全移除padding，让内容更紧凑 */
+        margin: 0;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        height: 100vh;
+        overflow: auto; /* 改为auto，允许滚动 */
+    }
+    
+    h1 {
+        font-size: 12px;
+        margin: 0; /* 移除margin，让标题更紧凑 */
+        line-height: 1.2;
+    }
+    
+    #ai-level-group {
+        margin-bottom: 1px; /* 减少底部间距 */
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1px;
+    }
+    
+    .ai-level-btn {
+        padding: 1px 3px;
+        font-size: 9px;
+        margin-right: 1px;
+        margin-bottom: 1px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    
+    /* 手机端布局调整 - 游戏信息在上，棋盘在中，兵营在下 */
+    #main-container {
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0; /* 移除间距，确保紧贴 */
+        height: 100vh; /* 使用视口高度 */
+        overflow: visible; /* 改为visible，允许内容显示 */
+        width: 100%;
+        display: flex;
+        /* 减少各区域之间的间距 */
+        padding: 0;
+        margin: 0;
+        /* 减少左右边距，让棋盘更大 */
+        margin-left: 0;
+        margin-right: 0;
+        /* 让内容合理分布 */
+        justify-content: space-between;
+    }
+    
+    #game-info {
+        width: 100%;
+        max-width: 100%;
+        height: 25px; /* 进一步减少高度 */
+        margin-right: 0;
+        margin-bottom: 0; /* 减少底部间距 */
+        font-size: 10px;
+        padding: 1px 4px; /* 减少上下padding */
+        overflow-y: auto;
+        order: 1;
+        flex-shrink: 0;
+        /* 让游戏信息占用更少空间 */
+        flex-grow: 0;
+    }
+    
+    #board-container {
+        width: 100%;
+        max-width: 100%;
+        flex-shrink: 0;
+        order: 2;
+        display: flex;
+        justify-content: center;
+        align-items: center; /* 恢复垂直居中 */
+        flex-shrink: 0; /* 防止被压缩 */
+        min-height: 0;
+        /* 确保棋盘容器正确显示 */
+        overflow: visible;
+        /* 确保棋盘容器有足够空间 */
+        padding: 0;
+        margin: 0;
+        /* 减少与兵营区的间距 */
+        margin-bottom: 0;
+        /* 减少左右边距，让棋盘更大 */
+        margin-left: 0;
+        margin-right: 0;
+        /* 让棋盘容器占用合理空间 */
+        flex-grow: 1; /* 恢复占用空间，但会通过其他方式控制 */
+        /* 恢复垂直居中 */
+        align-self: center;
+        /* 添加最大高度限制，减少空白 */
+        max-height: 60vh; /* 限制最大高度为视口高度的60% */
+    }
+    
+    #board {
+        justify-content: center;
+        width: 100%;
+        max-width: 100%;
+        flex-shrink: 0;
+        /* 确保棋盘正确居中 */
+        display: flex;
+        align-items: center; /* 恢复垂直居中 */
+        /* 确保棋盘容器有足够空间 */
+        padding: 0;
+        margin: 0;
+        /* 减少左右边距，让棋盘更大 */
+        margin-left: 0;
+        margin-right: 0;
+    }
+    
+    #board-area {
+        width: 100%; /* 改回100%，不使用100vw */
+        max-width: 100%;
+        height: auto;
+        min-width: unset;
+        min-height: unset;
+        max-height: unset;
+        aspect-ratio: 9/10;
+        border-width: 1px;
+        flex-shrink: 0;
+        /* 确保棋盘完整显示 */
+        box-sizing: border-box;
+        overflow: visible;
+        /* 确保棋盘不会被压缩 */
+        display: block;
+        /* 增加棋盘大小，让左右边线接近屏幕边缘 */
+        transform: scale(1.4); /* 减少到1.4倍 */
+        transform-origin: center center; /* 改为中心缩放 */
+        /* 修复对齐问题 */
+        margin: 0 auto;
+        /* 让棋盘左右边线接近屏幕边缘 */
+        padding: 0;
+    }
+    
+    .cell {
+        width: calc(100% / 9);
+        height: calc(100% / 10);
+        font-size: 11px;
+        min-width: 28px; /* 增加最小宽度 */
+        min-height: 28px; /* 增加最小高度 */
+        border-width: 0.5px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        /* 确保格子完整显示 */
+        box-sizing: border-box;
+        /* 确保格子不会被压缩 */
+        flex-shrink: 0;
+        /* 确保格子宽度计算正确 */
+        flex-basis: calc(100% / 9);
+        /* 因为左边没有坐标，格子可以更宽 */
+        flex-grow: 1;
+    }
+    
+    .piece {
+        width: 85%;
+        height: 85%;
+        font-size: 14px; /* 增加字体大小 */
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-width: 1px;
+    }
+    
+    /* 兵营区域放在棋盘下面 */
+    #spawn-container {
+        width: 100%;
+        max-width: 100%;
+        order: 3;
+        flex-shrink: 0;
+        display: block !important; /* 强制显示spawn-container */
+        height: auto; /* 改为自适应高度 */
+        overflow: visible; /* 允许内容溢出显示 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 0; /* 确保紧贴棋盘 */
+        padding: 0; /* 移除内边距 */
+        /* 确保容器不会被压缩 */
+        min-height: 100px; /* 减少最小高度 */
+        /* 减少与棋盘的间距 */
+        margin-bottom: 0;
+        /* 让兵营区占用更少空间 */
+        flex-grow: 0;
+        /* 减少空白区域 */
+        max-height: 120px;
+    }
+    
+    #spawn-area {
+        width: 100%;
+        max-width: 100%;
+        margin-top: 0; /* 紧贴容器顶部 */
+        padding: 2px;
+        height: auto; /* 改为自适应高度 */
+        overflow: visible; /* 移除滚动，允许内容完全显示 */
+        flex-shrink: 0;
+        display: block !important; /* 强制显示spawn-area */
+        box-sizing: border-box; /* 确保padding包含在宽度内 */
+        min-height: 80px; /* 减少最小高度 */
+        /* 确保内容不会被压缩 */
+        flex-grow: 1;
+        /* 减少与棋盘的间距 */
+        margin-bottom: 0;
+        /* 减少空白区域 */
+        max-height: 100px;
+    }
+    
+    .spawn-btn-list {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr); /* 改为每排6个 */
+        gap: 1px;
+        margin-bottom: 2px;
+        width: 100%;
+    }
+    
+    .spawn-btn {
+        font-size: 8px; /* 增大字体大小 */
+        padding: 1px 1px;
+        min-width: unset;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+        height: 28px; /* 增加按钮高度以适应更大字体 */
+        /* 让按钮更窄 */
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .spawn-btn .piece {
+        width: 14px; /* 增加宽度 */
+        height: 14px; /* 增加高度 */
+        font-size: 8px; /* 增大字体大小 */
+        border-width: 1px;
+    }
+    
+    #spawn-area #restart-btn {
+        font-size: 8px;
+        padding: 2px 4px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        margin-top: 2px;
+        height: 18px;
+    }
+    
+    /* 手机端通用按钮样式 */
+    #restart-btn {
+        font-size: 8px; /* 减少字体大小 */
+        padding: 2px 6px; /* 减少内边距 */
+        margin-top: 0; /* 移除顶部间距 */
+        height: 20px; /* 减少高度 */
+        display: block;
+        width: auto; /* 改为自适应宽度 */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        background: #2196f3;
+        color: #fff;
+        border: 1px solid #1565c0;
+        border-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    
+    #undo-btn {
+        font-size: 7px; /* 减少字体大小 */
+        padding: 2px 4px; /* 减少内边距 */
+        margin-top: 0; /* 移除顶部间距 */
+        height: 18px; /* 减少高度 */
+        display: block;
+        width: auto; /* 改为自适应宽度 */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        background: #ff9800;
+        color: #fff;
+        border: 1px solid #e65100;
+        border-radius: 3px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    
+    .spawn-desc {
+        font-size: 8px; /* 增大字体大小 */
+        padding: 3px; /* 增加内边距 */
+        margin: 1px 0;
+        height: 60px; /* 大幅增加高度以完整显示内容 */
+        overflow: visible; /* 移除滚动，让内容完整显示 */
+        line-height: 1.4; /* 增加行高 */
+        min-height: 60px; /* 确保最小高度 */
+    }
+    
+    /* 按钮触摸优化 */
+    button {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    
+    /* 坐标标签调整 */
+    .row > div:first-child {
+        width: 12px !important;
+        height: calc(100% / 10) !important;
+        font-size: 8px !important;
+        line-height: calc(100% / 10) !important;
+    }
+    
+    #board-area > div:last-child > div {
+        width: calc(100% / 9) !important;
+        height: 12px !important;
+        font-size: 8px !important;
+        line-height: 12px !important;
+    }
+    
+
+    
+    /* 手机端隐藏广告链接 */
+    #ad-links {
+        display: none;
+    }
+    
+    /* 手机端标题行样式 */
+    #spawn-area > div:first-child {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+        font-weight: bold;
+        font-size: 14px; /* 增大字体大小 */
+    }
+    
+    /* 手机端资源显示样式 */
+    #spawn-area > div:first-child > div:last-child {
+        font-size: 13px; /* 进一步增大字体大小 */
+        display: flex;
+        gap: 8px;
+    }
+    
+    /* 电脑端资源显示样式 */
+    #spawn-area > div:last-child {
+        margin: 8px 0 0 0;
+        font-size: 16px; /* 进一步增大字体大小 */
+    }
+    
+    /* 手机端按钮容器样式 */
+    #button-container {
+        display: flex;
+        flex-direction: row; /* 改为水平排列 */
+        gap: 4px; /* 按钮间距 */
+        width: 100%;
+        max-width: 100%;
+        margin-top: 2px; /* 进一步减少上边距 */
+        margin-bottom: 2px; /* 减少下边距 */
+        flex-shrink: 0;
+        order: 4; /* 确保按钮在兵营区之后显示 */
+        /* 减少空白区域 */
+        max-height: 60px;
+        /* 让按钮靠右显示 */
+        justify-content: flex-end;
+        align-items: center;
+        /* 完全靠边 */
+        padding-right: 0px;
+        /* 减少底部间距，避免挡住下面的字 */
+        margin-bottom: 1px;
+        /* 确保不影响资源值显示 */
+        position: relative;
+        z-index: 1;
+        /* 强制靠右 */
+        margin-left: auto;
+    }
+
+    .row {
+        display: flex;
+        width: 100%;
+        /* 确保行布局正确 */
+        flex-shrink: 0;
+        /* 确保格子对齐 */
+        align-items: stretch;
+    }
+}
+
+/* iPhone 7等小屏幕设备特殊优化 */
+@media (max-width: 375px) {
+    body {
+        padding: 0; /* 完全移除padding */
+        overflow: auto; /* 改为auto，允许滚动 */
+    }
+    
+    h1 {
+        font-size: 10px;
+        margin: 0;
+    }
+    
+    .ai-level-btn {
+        padding: 1px 2px;
+        font-size: 8px;
+    }
+    
+    #game-info {
+        height: 25px; /* 进一步减少高度 */
+        font-size: 9px;
+        padding: 1px 2px;
+    }
+    
+    .cell {
+        font-size: 10px;
+        min-width: 26px; /* 增加最小宽度 */
+        min-height: 26px; /* 增加最小高度 */
+    }
+    
+    .piece {
+        font-size: 12px; /* 增加字体大小 */
+    }
+    
+    #spawn-container {
+        height: auto; /* 改为自适应高度 */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 0; /* 确保紧贴棋盘 */
+        padding: 0; /* 移除内边距 */
+        overflow: visible; /* 允许内容溢出显示 */
+        /* 确保容器不会被压缩 */
+        min-height: 80px; /* 进一步减少最小高度 */
+        /* 减少与棋盘的间距 */
+        margin-bottom: 0;
+        /* 让兵营区占用更少空间 */
+        flex-grow: 0;
+        /* 减少空白区域 */
+        max-height: 100px;
+    }
+    
+    #spawn-area {
+        height: auto; /* 改为自适应高度 */
+        padding: 1px;
+        margin-top: 0; /* 紧贴容器顶部 */
+        box-sizing: border-box; /* 确保padding包含在宽度内 */
+        overflow: visible; /* 移除滚动，允许内容完全显示 */
+        min-height: 60px; /* 进一步减少最小高度 */
+        /* 确保内容不会被压缩 */
+        flex-grow: 1;
+        /* 减少与棋盘的间距 */
+        margin-bottom: 0;
+        /* 减少空白区域 */
+        max-height: 80px;
+    }
+    
+    .spawn-btn {
+        font-size: 7px; /* 增大字体大小 */
+        padding: 1px;
+        height: 24px; /* 增加按钮高度以适应更大字体 */
+        /* 让按钮更窄 */
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .spawn-btn .piece {
+        width: 12px; /* 增加宽度 */
+        height: 12px; /* 增加高度 */
+        font-size: 7px; /* 增大字体大小 */
+    }
+    
+    #spawn-area #restart-btn {
+        font-size: 7px;
+        padding: 1px 3px;
+        height: 16px;
+    }
+    
+    /* iPhone 7等小屏幕设备按钮样式 */
+    #restart-btn {
+        font-size: 7px; /* 进一步减少字体大小 */
+        padding: 1px 4px; /* 进一步减少内边距 */
+        margin-top: 0; /* 移除顶部间距 */
+        height: 16px; /* 进一步减少高度 */
+        display: block;
+        width: auto; /* 改为自适应宽度 */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        background: #2196f3;
+        color: #fff;
+        border: 1px solid #1565c0;
+        border-radius: 3px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    
+    #undo-btn {
+        font-size: 6px; /* 进一步减少字体大小 */
+        padding: 1px 2px; /* 进一步减少内边距 */
+        margin-top: 0; /* 移除顶部间距 */
+        height: 14px; /* 进一步减少高度 */
+        display: block;
+        width: auto; /* 改为自适应宽度 */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        background: #ff9800;
+        color: #fff;
+        border: 1px solid #e65100;
+        border-radius: 2px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+    
+    .spawn-desc {
+        font-size: 6px; /* 增大字体大小 */
+        height: 60px; /* 大幅增加高度以完整显示内容 */
+        padding: 3px; /* 增加内边距 */
+        line-height: 1.4; /* 增加行高 */
+        min-height: 60px; /* 确保最小高度 */
+        overflow: visible; /* 移除滚动，让内容完整显示 */
+    }
+    
+    .spawn-btn-list {
+        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
+    }
+    
+    /* iPhone 7等小屏幕设备标题行样式 */
+    #spawn-area > div:first-child {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 3px;
+        font-weight: bold;
+        font-size: 12px; /* 增大字体大小 */
+    }
+    
+    /* iPhone 7等小屏幕设备资源显示样式 */
+    #spawn-area > div:first-child > div:last-child {
+        font-size: 12px; /* 进一步增大字体大小 */
+        display: flex;
+        gap: 6px;
+    }
+    
+    /* iPhone 7等小屏幕设备电脑端资源显示样式（隐藏） */
+    #spawn-area > div:last-child {
+        display: none;
+    }
+    
+    /* 更小的坐标标签 */
+    .row > div:first-child {
+        width: 10px !important;
+        font-size: 6px !important;
+    }
+    
+    #board-area > div:last-child > div {
+        height: 10px !important;
+        font-size: 6px !important;
+        line-height: 10px !important;
+    }
+    
+    /* iPhone 7等小屏幕设备按钮容器样式 */
+    #button-container {
+        display: flex;
+        flex-direction: row; /* 改为水平排列 */
+        gap: 2px; /* 减少按钮间距 */
+        width: 100%;
+        max-width: 100%;
+        margin-top: 1px; /* 进一步减少上边距 */
+        margin-bottom: 1px; /* 进一步减少下边距 */
+        flex-shrink: 0;
+        order: 4; /* 确保按钮在兵营区之后显示 */
+        /* 减少空白区域 */
+        max-height: 40px;
+        /* 让按钮靠右显示 */
+        justify-content: flex-end;
+        align-items: center;
+        /* 完全靠边 */
+        padding-right: 0px;
+        /* 减少底部间距，避免挡住下面的字 */
+        margin-bottom: 1px;
+        /* 确保不影响资源值显示 */
+        position: relative;
+        z-index: 1;
+        /* 强制靠右 */
+        margin-left: auto;
+    }
+    
+    .row {
+        display: flex;
+        width: 100%;
+        /* 确保行布局正确 */
+        flex-shrink: 0;
+        /* 确保格子对齐 */
+        align-items: stretch;
+    }
+} 
+</style>
+<script>
+// 中国象棋小游戏主逻辑
+// 作者：AI
+// 主要功能：棋盘渲染、走法校验、AI、胜负判定等
+
+// 棋盘尺寸
+const ROWS = 10;
+const COLS = 9;
+
+// 棋子类型及初始布局
+const PIECES = {
+    rK: {name: '帅', color: 'red'}, rA: {name: '仕', color: 'red'}, rE: {name: '相', color: 'red'}, rH: {name: '马', color: 'red'}, rR: {name: '车', color: 'red'}, rC: {name: '炮', color: 'red'}, rS: {name: '兵', color: 'red'},
+    rJ: {name: '机', color: 'red'}, rT: {name: '坦', color: 'red'}, rD: {name: '弹', color: 'red'}, rG: {name: '甲', color: 'red'}, rM: {name: '矿', color: 'red'}, rY: {name: '运', color: 'red'},
+    bK: {name: '将', color: 'black'}, bA: {name: '士', color: 'black'}, bE: {name: '象', color: 'black'}, bH: {name: '马', color: 'black'}, bR: {name: '车', color: 'black'}, bC: {name: '炮', color: 'black'}, bS: {name: '卒', color: 'black'},
+    bJ: {name: '机', color: 'black'}, bT: {name: '坦', color: 'black'}, bD: {name: '弹', color: 'black'}, bG: {name: '甲', color: 'black'}, bM: {name: '矿', color: 'black'}, bY: {name: '运', color: 'black'}
+};
+
+// 粮草值
+let redResource = 100;
+let blackResource = 100;
+
+// 造兵可选棋子及其原始位置及说明、造价、行动消耗
+const SPAWNABLES = [
+    {type: 'R', name: '车', pos: [[0,0],[0,8],[9,0],[9,8]], cost: 130, moveCost: 20, desc: '车：横竖直线移动，造价130，行动消耗20资源'},
+    {type: 'H', name: '马', pos: [[0,1],[0,7],[9,1],[9,7]], cost: 80, moveCost: 0, desc: '马：走日字，造价80，行动消耗0资源'},
+    {type: 'C', name: '炮', pos: [[2,1],[2,7],[7,1],[7,7]], cost: 70, moveCost: 10, desc: '炮：直线跳子吃子，造价70，行动消耗10资源'},
+    {type: 'S', name: '兵', pos: [[3,0],[3,2],[3,4],[3,6],[3,8],[6,0],[6,2],[6,4],[6,6],[6,8]], cost: 30, moveCost: 0, desc: '兵：只能前进，过河后可横走，造价30，行动消耗0资源'},
+    {type: 'A', name: '士', pos: [[0,3],[0,4],[0,5],[1,3],[1,4],[1,5],[2,3],[2,4],[2,5],[7,3],[7,4],[7,5],[8,3],[8,4],[8,5],[9,3],[9,4],[9,5]], cost: 100, moveCost: 0, desc: '士：九宫斜走，造价100，行动消耗0资源'},
+    {type: 'E', name: '相', pos: [[0,2],[0,6],[9,2],[9,6]], cost: 40, moveCost: 0, desc: '相：田字格，造价40，行动消耗0资源'},
+    {type: 'J', name: '机', pos: [[0,0],[0,8],[9,0],[9,8]], cost: 200, moveCost: 40, desc: '机：直线移动和吃子，可跨一个子移动和吃子，造价200，行动消耗40资源'},
+    {type: 'T', name: '坦', pos: [[0,1],[0,7],[9,1],[9,7]], cost: 180, moveCost: 40, desc: '坦：直线和斜线移动吃子，造价180，行动消耗40资源'},
+    {type: 'D', name: '弹', pos: [[2,1],[2,7],[7,1],[7,7]], cost: 150, moveCost: 20, desc: '弹：直线行走可隔子吃子，斜线跳吃，造价150，行动消耗20资源'},
+    {type: 'G', name: '甲', pos: [[2,0],[2,2],[2,4],[2,6],[2,8],[7,0],[7,2],[7,4],[7,6],[7,8]], cost: 80, moveCost: 30, desc: '甲：直线或斜线移动一格或吃子，造价80，行动消耗30资源'},
+    {type: 'M', name: '矿', pos: [[0,0],[0,1],[0,2],[0,6],[0,7],[0,8],[9,0],[9,1],[9,2],[9,6],[9,7],[9,8]], cost: 200, moveCost: 0, desc: '矿：可直线移动一格，不能吃子，每回合资源+10，造价200，行动消耗0资源'},
+    {type: 'Y', name: '运', pos: [[0,2],[0,6],[9,2],[9,6]], cost: 200, moveCost: 50, desc: '运：2段折线移动，不可吃子，造价200，行动消耗50资源，行动后其它兵可移动到其周围8格'}
+];
+
+// 棋子价值参考表（用户指定）
+const PIECE_VALUE = {
+    'K': 99999, // 将
+    'A': 100,   // 士
+    'E': 40,    // 相
+    'S': 60,    // 兵
+    'H': 80,    // 马
+    'C': 80,    // 炮
+    'R': 120,   // 车
+    'G': 80,    // 甲
+    'T': 200,   // 坦
+    'J': 200,   // 机
+    'D': 150,   // 弹
+    'M': 200,   // 矿
+    'Y': 220    // 运
+};
+
+// 初始棋盘布局
+function getInitialBoard() {
+    const b = Array.from({length: ROWS}, () => Array(COLS).fill(null));
+    b[0][4] = 'bK';
+    b[0][3] = 'bA'; b[0][5] = 'bA'; // 黑士
+    b[0][2] = 'bE'; b[0][6] = 'bE'; // 黑相
+    b[1][4] = 'bH'; // 黑马在九宫格中心
+    b[3][0] = 'bS'; b[3][4] = 'bS'; b[3][8] = 'bS';
+    b[9][4] = 'rK';
+    b[9][3] = 'rA'; b[9][5] = 'rA'; // 红士
+    b[9][2] = 'rE'; b[9][6] = 'rE'; // 红相
+    b[8][4] = 'rH'; // 红马在九宫格中心
+    b[6][0] = 'rS'; b[6][4] = 'rS'; b[6][8] = 'rS';
+    return b;
+}
+
+// 游戏状态
+let board = getInitialBoard();
+let currentPlayer = 'red'; // 红方先手
+let selected = null; // 选中的棋子
+let gameOver = false;
+let turnCount = 0; // 回合数
+let consecutiveChecks = 0; // 连续将军次数
+
+// 悔棋功能：保存上两步状态
+let lastBoard = null;
+let lastRedResource = 0;
+let lastBlackResource = 0;
+let lastCurrentPlayer = 'red';
+let lastTurnCount = 0;
+
+// 保存更早一步的状态（红棋走子前）
+let lastLastBoard = null;
+let lastLastRedResource = 0;
+let lastLastBlackResource = 0;
+let lastLastCurrentPlayer = 'red';
+let lastLastTurnCount = 0;
+
+// 记录当前可行走目标格
+let validMoves = [];
+// 记录造兵选择
+let spawnSelect = null;
+// 记录当前说明
+let spawnDesc = '';
+
+// 黑棋难度配置
+const AI_LEVELS = {
+  easy:   {init: 100, perTurn: 20},
+  normal: {init: 100, perTurn: 30},
+  elite:  {init: 150, perTurn: 30},
+  crazy:  {init: 200, perTurn: 40}
+};
+let aiLevel = 'normal'; // 默认普通
+let blackInitResource = AI_LEVELS[aiLevel].init;
+let blackPerTurnResource = AI_LEVELS[aiLevel].perTurn;
+
+// 难度说明
+const AI_LEVEL_DESC = {
+  easy:   '智障模式：黑棋初始资源100，每回合资源增加20',
+  normal: '普通模式：黑棋初始资源100，每回合资源增加30',
+  elite:  '精英模式：黑棋初始资源150，每回合资源增加30',
+  crazy:  '疯狂模式：黑棋初始资源200，每回合资源增加40'
+};
+
+// 难度按钮逻辑
+if (typeof window !== 'undefined') {
+  setTimeout(()=>{
+    const btns = document.querySelectorAll('.ai-level-btn');
+    const infoDiv = document.getElementById('game-info');
+    function updateLevelBtns() {
+      btns.forEach(btn => {
+        if (btn.dataset.level === aiLevel) btn.classList.add('selected');
+        else btn.classList.remove('selected');
+      });
+      if (infoDiv) infoDiv.innerText = AI_LEVEL_DESC[aiLevel] || '';
+    }
+    btns.forEach(btn => {
+      const handleClick = function() {
+        aiLevel = btn.dataset.level;
+        blackInitResource = AI_LEVELS[aiLevel].init;
+        blackPerTurnResource = AI_LEVELS[aiLevel].perTurn;
+        updateLevelBtns();
+        document.getElementById('restart-btn').click();
+      };
+      
+      btn.onclick = handleClick;
+      btn.ontouchstart = (e) => {
+        e.preventDefault();
+        handleClick();
+      };
+    });
+    updateLevelBtns();
+  }, 100);
+}
+
+// 资源增加：对方回合结束时加
+function addTurnResource(player) {
+    let mine = 0;
+    for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) {
+        if (player === 'red' && board[i][j] === 'rM') mine++;
+        if (player === 'black' && board[i][j] === 'bM') mine++;
+    }
+    if (player === 'red') redResource += 20 + mine * 10;
+    if (player === 'black') blackResource += blackPerTurnResource + mine * 10;
+    renderBoard(); // 保证主界面刷新
+    // 直接刷新兵营区资源span，保证资源值立即变化
+    const redResSpan = document.getElementById('red-res');
+    if (redResSpan) redResSpan.innerText = redResource;
+    const blackResSpan = document.getElementById('black-res');
+    if (blackResSpan) blackResSpan.innerText = blackResource;
+}
+
+
+
+// 检查坐标是否在棋盘内
+function inBoard(x, y) {
+    return x >= 0 && x < ROWS && y >= 0 && y < COLS;
+}
+
+// 渲染棋盘和兵营区
+function renderBoard() {
+    const boardDiv = document.getElementById('board');
+    boardDiv.innerHTML = '';
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    // 棋盘
+    const boardArea = document.createElement('div');
+    boardArea.style.position = 'relative';
+    // 棋盘主体
+    for (let i = 0; i < ROWS; i++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+        rowDiv.style.display = 'flex';
+        // 纵向数字坐标
+        const rowLabel = document.createElement('div');
+        rowLabel.style.width = '24px';
+        rowLabel.style.height = '48px';
+        rowLabel.style.lineHeight = '48px';
+        rowLabel.style.textAlign = 'center';
+        rowLabel.style.fontWeight = 'bold';
+        rowLabel.style.fontSize = '16px';
+        rowLabel.style.userSelect = 'none';
+        rowLabel.style.border = 'none';
+        rowLabel.style.background = 'none';
+        rowLabel.style.pointerEvents = 'none';
+        rowLabel.innerText = (i+1).toString();
+        // 手机端坐标标签样式
+        if (window.innerWidth <= 375) {
+            rowLabel.style.width = '10px';
+            rowLabel.style.height = 'calc(100% / 10)';
+            rowLabel.style.lineHeight = 'calc(100% / 10)';
+            rowLabel.style.fontSize = '6px';
+        } else if (window.innerWidth <= 768) {
+            rowLabel.style.width = '12px';
+            rowLabel.style.height = 'calc(100% / 10)';
+            rowLabel.style.lineHeight = 'calc(100% / 10)';
+            rowLabel.style.fontSize = '8px';
+        }
+        // 手机端不显示纵向坐标标签
+        if (window.innerWidth <= 768) {
+            rowLabel.style.display = 'none';
+        }
+        rowDiv.appendChild(rowLabel);
+        for (let j = 0; j < COLS; j++) {
+            const cellDiv = document.createElement('div');
+            cellDiv.className = 'cell';
+            cellDiv.dataset.x = i;
+            cellDiv.dataset.y = j;
+            // 河道格子线加深蓝色
+            if (i === 4 || i === 5) {
+                cellDiv.classList.add('river-line');
+            }
+            // 九宫格格子线加绿色
+            if ((i >= 0 && i <= 2 && j >= 3 && j <= 5) || (i >= 7 && i <= 9 && j >= 3 && j <= 5)) {
+                cellDiv.classList.add('palace-line');
+            }
+            // 可行走目标格高亮
+            if (validMoves.some(m => m.x === i && m.y === j)) {
+                cellDiv.classList.add('moveable');
+            }
+            if (selected && selected.x === i && selected.y === j) {
+                cellDiv.classList.add('selected');
+            }
+            const piece = board[i][j];
+            if (piece) {
+                const pieceDiv = document.createElement('span');
+                pieceDiv.className = 'piece ' + PIECES[piece].color;
+                pieceDiv.innerText = PIECES[piece].name;
+                cellDiv.appendChild(pieceDiv);
+            }
+            // 添加点击和触摸事件支持
+            const handleClick = (e) => {
+                handleCellClick(i, j);
+                e.stopPropagation();
+            };
+            
+            cellDiv.onclick = handleClick;
+            cellDiv.ontouchstart = (e) => {
+                e.preventDefault();
+                handleClick(e);
+            };
+            rowDiv.appendChild(cellDiv);
+        }
+        boardArea.appendChild(rowDiv);
+    }
+    // 横向字母坐标（放在棋盘下方）
+    const colLabels = document.createElement('div');
+    colLabels.style.display = 'flex';
+    colLabels.style.height = '24px';
+    colLabels.style.justifyContent = 'center';
+    colLabels.style.alignItems = 'flex-start';
+    colLabels.style.userSelect = 'none';
+    // 手机端不显示空角落
+    if (window.innerWidth <= 768) {
+        // 手机端不创建空角落
+    } else {
+        const emptyCorner = document.createElement('div');
+        emptyCorner.style.width = '24px';
+        emptyCorner.style.height = '24px';
+        emptyCorner.style.border = 'none';
+        emptyCorner.style.background = 'none';
+        // 手机端空角落样式
+        if (window.innerWidth <= 375) {
+            emptyCorner.style.width = '10px';
+            emptyCorner.style.height = '10px';
+            emptyCorner.style.boxSizing = 'border-box';
+        } else if (window.innerWidth <= 768) {
+            emptyCorner.style.width = '12px';
+            emptyCorner.style.height = '12px';
+            emptyCorner.style.boxSizing = 'border-box';
+        }
+        colLabels.appendChild(emptyCorner);
+    }
+    for (let j = 0; j < COLS; j++) {
+        const label = document.createElement('div');
+        label.style.width = '48px';
+        label.style.height = '24px';
+        label.style.lineHeight = '24px';
+        label.style.textAlign = 'center';
+        label.style.fontWeight = 'bold';
+        label.style.fontSize = '16px';
+        label.style.border = 'none';
+        label.style.background = 'none';
+        label.style.pointerEvents = 'none';
+        label.innerText = String.fromCharCode(65 + j);
+        // 手机端坐标标签样式
+        if (window.innerWidth <= 375) {
+            label.style.width = 'calc(100% / 9)'; /* 使用百分比 */
+            label.style.height = '10px';
+            label.style.lineHeight = '10px';
+            label.style.fontSize = '6px';
+            // 确保与纵向坐标标签对齐
+            label.style.boxSizing = 'border-box';
+        } else if (window.innerWidth <= 768) {
+            label.style.width = 'calc(100% / 9)'; /* 使用百分比 */
+            label.style.height = '12px';
+            label.style.lineHeight = '12px';
+            label.style.fontSize = '8px';
+            // 确保与纵向坐标标签对齐
+            label.style.boxSizing = 'border-box';
+        }
+        colLabels.appendChild(label);
+    }
+    boardArea.appendChild(colLabels);
+    boardArea.id = 'board-area';
+    // 点击棋盘空白处取消造兵选择
+    boardArea.onclick = () => {
+        if (spawnSelect) {
+            spawnSelect = null;
+            validMoves = [];
+            spawnDesc = '';
+            renderBoard();
+        }
+    };
+    container.appendChild(boardArea);
+    // 兵营区
+    let spawnDiv = document.getElementById('spawn-area');
+    if (!spawnDiv) {
+        spawnDiv = document.createElement('div');
+        spawnDiv.id = 'spawn-area';
+        // 手机端不使用左边距
+        if (window.innerWidth > 768) {
+            spawnDiv.style.marginLeft = '24px';
+        }
+    } else {
+        // 清空现有内容，避免重复
+        spawnDiv.innerHTML = '';
+    }
+    
+    // 根据屏幕尺寸决定显示方式
+    if (window.innerWidth <= 768) {
+        // 手机端：创建标题行，包含"兵营"和资源值
+        const titleRow = document.createElement('div');
+        titleRow.style.display = 'flex';
+        titleRow.style.justifyContent = 'space-between';
+        titleRow.style.alignItems = 'center';
+        titleRow.style.marginBottom = '4px';
+        titleRow.style.fontWeight = 'bold';
+        
+        // 兵营标题
+        const titleDiv = document.createElement('div');
+        titleDiv.innerText = '兵营';
+        titleRow.appendChild(titleDiv);
+        
+        // 资源值显示（一行显示）
+        const resDiv = document.createElement('div');
+        resDiv.style.fontSize = '7px';
+        resDiv.style.display = 'flex';
+        resDiv.style.gap = '8px';
+        resDiv.innerHTML = `<span>红方资源：<span id='red-res'>${redResource}</span></span><span>黑方资源：<span id='black-res'>${blackResource}</span></span>`;
+        titleRow.appendChild(resDiv);
+        
+        spawnDiv.appendChild(titleRow);
+    } else {
+        // 电脑端：只显示兵营标题
+        spawnDiv.innerHTML = `<div style="font-weight:bold;margin-bottom:4px;">兵营</div>`;
+    }
+    
+    // 分两列显示按钮
+    const btnList = document.createElement('div');
+    btnList.className = 'spawn-btn-list';
+    SPAWNABLES.forEach((spawn, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'spawn-btn';
+        if (spawnSelect && spawnSelect.type === spawn.type) btn.classList.add('selected');
+        // 棋子图像
+        const pieceKey = 'r'+spawn.type;
+        if (PIECES[pieceKey]) {
+            const pieceDiv = document.createElement('span');
+            pieceDiv.className = 'piece red';
+            pieceDiv.innerText = PIECES[pieceKey].name;
+            btn.appendChild(pieceDiv);
+        } else {
+            btn.innerText = spawn.name;
+        }
+        const handleClick = (e) => {
+            if (currentPlayer !== 'red' || gameOver) return;
+            // 再次点击取消
+            if (spawnSelect && spawnSelect.type === spawn.type) {
+                spawnSelect = null;
+                validMoves = [];
+                spawnDesc = '';
+                renderBoard();
+                return;
+            }
+            spawnSelect = spawn;
+            selected = null;
+            // 高亮可放置格（红方5-9行，黑方0-4行），可覆盖己方运
+            validMoves = spawn.pos.filter(pos => {
+                const cell = board[pos[0]][pos[1]];
+                if (!cell) return (currentPlayer==='red' && pos[0]>=5) || (currentPlayer==='black' && pos[0]<=4);
+                // 可过河道兵种覆盖己方运
+                if (cell === 'rY' && currentPlayer==='red' && pos[0]>=5 && ['R','H','C','S','J','T','D','G','Y'].includes(spawn.type)) return true;
+                if (cell === 'bY' && currentPlayer==='black' && pos[0]<=4 && ['R','H','C','S','J','T','D','G','Y'].includes(spawn.type)) return true;
+                return false;
+            }).map(pos => ({x: pos[0], y: pos[1]}));
+            spawnDesc = spawn.desc;
+            renderBoard();
+            e.stopPropagation();
+        };
+        
+        btn.onclick = handleClick;
+        btn.ontouchstart = (e) => {
+            e.preventDefault();
+            handleClick(e);
+        };
+        btnList.appendChild(btn);
+    });
+    spawnDiv.appendChild(btnList);
+    // 兵种说明
+    const descDiv = document.createElement('div');
+    descDiv.className = 'spawn-desc';
+    descDiv.innerText = spawnDesc || '点击兵种查看说明';
+    spawnDiv.appendChild(descDiv);
+    
+    // 电脑端资源显示（在原来的位置）
+    if (window.innerWidth > 768) {
+        const resDiv = document.createElement('div');
+        resDiv.style.margin = '8px 0 0 0';
+        resDiv.style.fontSize = '12px';
+        resDiv.innerHTML = `<div>红方资源：<span id='red-res'>${redResource}</span></div><div>黑方资源：<span id='black-res'>${blackResource}</span></div>`;
+        spawnDiv.appendChild(resDiv);
+    }
+    // 根据屏幕尺寸决定兵营区域插入位置
+    const spawnContainer = document.getElementById('spawn-container');
+    if (window.innerWidth <= 768 && spawnContainer) {
+        // 手机端：如果spawnDiv不在spawnContainer中，则插入
+        if (spawnDiv.parentElement !== spawnContainer) {
+            spawnContainer.appendChild(spawnDiv);
+        }
+    } else {
+        // 桌面端：如果spawnDiv不在container中，则插入
+        if (spawnDiv.parentElement !== container) {
+            container.appendChild(spawnDiv);
+        }
+    }
+    boardDiv.appendChild(container);
+    updateGameInfo();
+    // 保证资源span与全局变量同步
+    setTimeout(()=>{
+        const redResSpan = document.getElementById('red-res');
+        if (redResSpan) redResSpan.innerText = redResource;
+        const blackResSpan = document.getElementById('black-res');
+        if (blackResSpan) blackResSpan.innerText = blackResource;
+    }, 0);
+}
+
+// 更新游戏信息（只保留5条历史）
+function updateGameInfo(msg) {
+    const infoDiv = document.getElementById('game-info');
+    if (!infoDiv) return;
+    let lines = infoDiv.innerText ? infoDiv.innerText.split('\n') : [];
+    if (gameOver) {
+        if (!infoDiv.innerText.includes('胜利')) {
+            lines.push(msg || '游戏结束');
+        }
+    } else {
+        let text = `第${turnCount}回合 - `;
+        text += currentPlayer === 'red' ? '轮到你走（红方）' : '电脑走棋（黑方）';
+        if (msg) text += ' | ' + msg;
+        lines.push(text);
+    }
+    // 只保留最后5条
+    if (lines.length > 5) lines = lines.slice(-5);
+    infoDiv.innerText = lines.join('\n');
+    infoDiv.scrollTop = infoDiv.scrollHeight;
+}
+
+// 处理点击
+function handleCellClick(x, y) {
+    if (gameOver || currentPlayer !== 'red') {
+        return;
+    }
+    // 造兵模式优先判断
+    if (spawnSelect) {
+        // 只能放到原始位置且为空，且己方一侧，或覆盖己方运
+        let can = false;
+        for (const pos of SPAWNABLES.find(s=>s.type===spawnSelect.type).pos) {
+            if (x === pos[0] && y === pos[1] && PIECES['r'+spawnSelect.type]) {
+                // 可过河道兵种覆盖己方运
+                if (board[x][y] === 'rY' && ['R','H','C','S','J','T','D','G','Y'].includes(spawnSelect.type)) can = true;
+                if (!board[x][y] && x >= 5) can = true;
+            }
+        }
+        if (!can) {
+            spawnSelect = null;
+            validMoves = [];
+            spawnDesc = '';
+            renderBoard();
+            return;
+        }
+        if (redResource < spawnSelect.cost) {
+            updateGameInfo('资源不足！');
+            return;
+        }
+        
+        // 保存更早的状态（红棋走子前）
+        lastLastBoard = JSON.parse(JSON.stringify(board));
+        lastLastRedResource = redResource;
+        lastLastBlackResource = blackResource;
+        lastLastCurrentPlayer = currentPlayer;
+        lastLastTurnCount = turnCount;
+        
+        // 保存造兵前状态
+        lastBoard = JSON.parse(JSON.stringify(board));
+        lastRedResource = redResource;
+        lastBlackResource = blackResource;
+        lastCurrentPlayer = currentPlayer;
+        lastTurnCount = turnCount;
+        
+        board[x][y] = 'r'+spawnSelect.type;
+        redResource -= spawnSelect.cost;
+        turnCount++;
+        spawnSelect = null;
+        spawnDesc = '';
+        selected = null;
+        validMoves = [];
+        renderBoard();
+        // 切换到黑方并自动AI
+        // 红方走完加黑方资源
+        addTurnResource('black');
+        currentPlayer = 'black';
+        handleCellClick._turnResourceAdded = false;
+        setTimeout(()=>aiMove(), 500);
+        return;
+    }
+    // 只有在非造兵分支且resourceAddedForTurn为false时加资源
+    // 资源增加逻辑已移除
+    const piece = board[x][y];
+    if (selected) {
+        // 再次点击自己棋子则取消选择
+        if (piece && PIECES[piece].color === 'red') {
+            // 再次点击同一格则取消
+            if (selected.x === x && selected.y === y) {
+                selected = null;
+                validMoves = [];
+                renderBoard();
+                return;
+            }
+            selected = {x, y};
+            validMoves = getValidMoves(x, y, 'red');
+            renderBoard();
+            return;
+        }
+        // 走棋
+        if (validMoves.some(m => m.x === x && m.y === y)) {
+            // 在红棋走子后、AI走子前保存红棋走子前的状态
+            lastLastBoard = JSON.parse(JSON.stringify(board));
+            lastLastRedResource = redResource;
+            lastLastBlackResource = blackResource;
+            lastLastCurrentPlayer = currentPlayer;
+            lastLastTurnCount = turnCount;
+            
+            // 检查行动消耗逻辑删除，只在movePiece中扣除
+            if (movePiece(selected.x, selected.y, x, y)) {
+                selected = null;
+                validMoves = [];
+                renderBoard();
+                // 红方走完加黑方资源
+                addTurnResource('black');
+                // 切换到黑方并自动AI
+                currentPlayer = 'black';
+                handleCellClick._turnResourceAdded = false;
+                setTimeout(() => aiMove(), 500);
+            } else {
+                // 移动失败（如资源不足），保持当前状态
+                selected = null;
+                validMoves = [];
+                renderBoard();
+            }
+        } else {
+            // 点击无效位置时取消选中
+            selected = null;
+            validMoves = [];
+            renderBoard();
+        }
+    } else {
+        // 选中自己的棋子
+        if (piece && PIECES[piece].color === 'red') {
+            selected = {x, y};
+            validMoves = getValidMoves(x, y, 'red');
+            renderBoard();
+        }
+    }
+    // 全局变量，记录上一步红棋和黑棋行动
+    if (currentPlayer === 'red' && selected && validMoves.some(m => m.x === x && m.y === y)) {
+        lastRedMove = {x: x, y: y};
+    }
+}
+
+// 获取所有可行走目标格
+function getValidMoves(sx, sy, color) {
+    const moves = [];
+    for (let dx = 0; dx < ROWS; dx++) {
+        for (let dy = 0; dy < COLS; dy++) {
+            const valid = isValidMove(sx, sy, dx, dy, color);
+            if (valid) {
+                moves.push({x: dx, y: dy});
+            }
+        }
+    }
+    return moves;
+}
+
+// 移动棋子（胜负判定：只有吃掉对方将才算胜利）
+function movePiece(sx, sy, dx, dy) {
+    // 保存当前状态用于悔棋
+    lastBoard = JSON.parse(JSON.stringify(board));
+    lastRedResource = redResource;
+    lastBlackResource = blackResource;
+    lastCurrentPlayer = currentPlayer;
+    lastTurnCount = turnCount;
+    
+    const moving = board[sx][sy];
+    let spawnInfo = SPAWNABLES.find(s=>moving===((currentPlayer==='red'?'r':'b')+s.type));
+    if (spawnInfo && spawnInfo.moveCost > 0) {
+        if (currentPlayer === 'red' && redResource < spawnInfo.moveCost) {
+            updateGameInfo('资源不足，无法行动！');
+            return false;
+        }
+        if (currentPlayer === 'black' && blackResource < spawnInfo.moveCost) {
+            // AI资源不足，禁止行动
+            return false;
+        }
+    }
+    const target = board[dx][dy];
+    const who = currentPlayer; // 记录本次实际走子方
+    // 只在实际行动时扣除资源
+    let spawnInfo2 = SPAWNABLES.find(s=>moving===((who==='red'?'r':'b')+s.type));
+    if (spawnInfo2 && spawnInfo2.moveCost > 0) {
+        if (who === 'red') redResource -= spawnInfo2.moveCost;
+        else blackResource -= spawnInfo2.moveCost;
+    }
+    board[dx][dy] = moving;
+    board[sx][sy] = null;
+    // 运行动后不生成兵，但会标记运的位置供其他兵使用
+    // 移除生成兵的逻辑
+    // 增加回合数
+    turnCount++;
+    // 检查黑棋主动对将判负
+    if (who === 'black' && isFaceToFace()) {
+        gameOver = true;
+        updateGameInfo('黑方主动对将，判负！');
+        return true;
+    }
+    // 检查红棋主动对将判负
+    if (who === 'red' && isFaceToFace()) {
+        gameOver = true;
+        updateGameInfo('红方主动对将，判负！');
+        return true;
+    }
+    // 恢复吃将判输赢逻辑
+    if (target === 'bK') {
+        gameOver = true;
+        updateGameInfo('红方胜利！');
+        return true;
+    } else if (target === 'rK') {
+        gameOver = true;
+        updateGameInfo('黑方胜利！');
+        return true;
+    }
+    // 检查是否被将军
+    if (isInCheck('black')) {
+        updateGameInfo('将军！');
+        consecutiveChecks++; // 增加连续将军计数
+    } else {
+        consecutiveChecks = 0; // 重置连续将军计数
+    }
+    // 切换currentPlayer
+    // 资源增加逻辑已移除
+    return true;
+}
+
+// 判断是否被将军
+function isInCheck(color) {
+    // 找到将/帅位置
+    let king = null;
+    for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+            const p = board[i][j];
+            if (p && PIECES[p].color === color && (p === 'rK' || p === 'bK')) {
+                king = {x: i, y: j};
+            }
+        }
+    }
+    // 如果没有找到将/帅，返回false
+    if (!king) {
+        return false;
+    }
+    // 检查所有对方棋子能否吃掉将/帅
+    const enemy = color === 'red' ? 'black' : 'red';
+    for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+            const p = board[i][j];
+            if (p && PIECES[p].color === enemy) {
+                if (isValidMove(i, j, king.x, king.y, enemy, true)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// 辅助函数：收集所有红棋下一步能威胁的位置
+function getAllRedThreats() {
+    let threats = new Set();
+    for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) {
+        if (board[i][j] && PIECES[board[i][j]].color === 'red') {
+            let moves = getValidMoves(i, j, 'red');
+            for (const m of moves) {
+                threats.add(m.x + ',' + m.y);
+            }
+        }
+    }
+    return threats;
+}
+
+// 修正兵/卒走法：红兵sx<5时可横走，黑卒sx>4时可横走（调试输出）
+function isValidMove(sx, sy, dx, dy, color, ignoreCheck) {
+    if (!inBoard(dx, dy)) return false;
+    const piece = board[sx][sy];
+    if (!piece || PIECES[piece].color !== color) return false;
+    if (sx === dx && sy === dy) return false;
+    const target = board[dx][dy];
+    if (target && PIECES[target].color === color) return false;
+    // 走法规则
+    switch (piece) {
+        case 'rK': case 'bK':
+            // 帅/将只能在九宫格内，且每次走一步
+            if (color === 'red') {
+                if (dx < 7 || dx > 9 || dy < 3 || dy > 5) return false;
+            } else {
+                if (dx < 0 || dx > 2 || dy < 3 || dy > 5) return false;
+            }
+            if (Math.abs(sx - dx) + Math.abs(sy - dy) !== 1) return false;
+            // "将帅对面"规则
+            if (sy === dy) {
+                let cnt = 0;
+                for (let i = Math.min(sx, dx) + 1; i < Math.max(sx, dx); i++) {
+                    if (board[i][sy]) cnt++;
+                }
+                if (cnt === 0) {
+                    const otherKing = color === 'red' ? 'bK' : 'rK';
+                    if (board[dx][dy] === otherKing) return true;
+                }
+            }
+            break;
+        case 'rA': case 'bA':
+            // 士：斜走一步，不限制九宫格，但不能过河
+            if (color === 'red' && dx < 5) return false;
+            if (color === 'black' && dx > 4) return false;
+            if (Math.abs(sx - dx) !== 1 || Math.abs(sy - dy) !== 1) return false;
+            break;
+        case 'rE': case 'bE':
+            // 相/象只能走田字格，不能过河
+            if (color === 'red' && dx < 5) return false;
+            if (color === 'black' && dx > 4) return false;
+            if (Math.abs(sx - dx) !== 2 || Math.abs(sy - dy) !== 2) return false;
+            // 田心不能有子
+            if (board[(sx + dx) / 2][(sy + dy) / 2]) return false;
+            break;
+        case 'rH': case 'bH':
+            // 马走日，蹩马腿
+            if (!((Math.abs(sx - dx) === 2 && Math.abs(sy - dy) === 1) || (Math.abs(sx - dx) === 1 && Math.abs(sy - dy) === 2))) return false;
+            let mx = sx + (dx - sx) / (Math.abs(dx - sx) || 1);
+            let my = sy + (dy - sy) / (Math.abs(dy - sy) || 1);
+            if (Math.abs(sx - dx) === 2 && board[sx + (dx - sx) / 2][sy]) return false;
+            if (Math.abs(sy - dy) === 2 && board[sx][sy + (dy - sy) / 2]) return false;
+            break;
+        case 'rR': case 'bR':
+            // 车直线走，不能隔子
+            if (sx !== dx && sy !== dy) return false;
+            let cnt = 0;
+            if (sx === dx) {
+                for (let j = Math.min(sy, dy) + 1; j < Math.max(sy, dy); j++) {
+                    if (board[sx][j]) cnt++;
+                }
+            } else {
+                for (let i = Math.min(sx, dx) + 1; i < Math.max(sx, dx); i++) {
+                    if (board[i][sy]) cnt++;
+                }
+            }
+            if (cnt > 0) return false;
+            break;
+        case 'rC': case 'bC':
+            // 炮直线走，吃子时隔一个，不吃时不能隔子
+            if (sx !== dx && sy !== dy) return false;
+            let c = 0;
+            if (sx === dx) {
+                for (let j = Math.min(sy, dy) + 1; j < Math.max(sy, dy); j++) {
+                    if (board[sx][j]) c++;
+                }
+            } else {
+                for (let i = Math.min(sx, dx) + 1; i < Math.max(sx, dx); i++) {
+                    if (board[i][sy]) c++;
+                }
+            }
+            if (target) {
+                if (c !== 1) return false;
+            } else {
+                if (c !== 0) return false;
+            }
+            break;
+        case 'rS':
+            // 红兵：向上一步或过河后横走（过河后可以横走）
+            if (dx === sx - 1 && dy === sy) return true;
+            if (sx <= 4 && dx === sx && Math.abs(dy - sy) === 1) return true;
+            // 检查是否可以移动到运周围的8个格子
+            if (canMoveToYunSurrounding(sx, sy, dx, dy, 'red')) return true;
+            return false;
+        case 'bS':
+            // 黑卒：向下一步或过河后横走（过河后可以横走）
+            if (dx === sx + 1 && dy === sy) return true;
+            if (sx >= 5 && dx === sx && Math.abs(dy - sy) === 1) return true;
+            // 检查是否可以移动到运周围的8个格子
+            if (canMoveToYunSurrounding(sx, sy, dx, dy, 'black')) return true;
+            return false;
+        case 'rJ': case 'bJ': {
+            // 机：强化车，可无阻碍直线走/吃，也可跨一个子走动和吃子
+            if (sx !== dx && sy !== dy) return false;
+            let cnt = 0;
+            if (sx === dx) {
+                for (let j = Math.min(sy, dy) + 1; j < Math.max(sy, dy); j++) {
+                    if (board[sx][j]) cnt++;
+                }
+            } else {
+                for (let i = Math.min(sx, dx) + 1; i < Math.max(sx, dx); i++) {
+                    if (board[i][sy]) cnt++;
+                }
+            }
+            if (cnt === 0) {
+                // 无阻碍直线走/吃
+                return true;
+            } else if (cnt === 1) {
+                // 跨一个子走动和吃子
+                return true;
+            } else {
+                return false;
+            }
+        }
+        case 'rG': case 'bG':
+            // 甲：直线或斜线移动一格或吃子
+            if (!((Math.abs(sx - dx) === 1 && sy === dy) || (sx === dx && Math.abs(sy - dy) === 1) || (Math.abs(sx - dx) === 1 && Math.abs(sy - dy) === 1))) return false;
+            break;
+        case 'rD': case 'bD':
+            // 弹：直线可走，斜线只能跳吃
+            if ((sx === dx && sy !== dy) || (sy === dy && sx !== dx)) {
+                // 直线移动
+                let cntD = 0;
+                if (sx === dx) {
+                    for (let j = Math.min(sy, dy) + 1; j < Math.max(sy, dy); j++) {
+                        if (board[sx][j]) cntD++;
+                    }
+                } else {
+                    for (let i = Math.min(sx, dx) + 1; i < Math.max(sx, dx); i++) {
+                        if (board[i][sy]) cntD++;
+                    }
+                }
+                if (target && PIECES[target].color !== color) {
+                    // 直线隔一个子可以吃
+                    if (cntD === 1) return true;
+                    return false;
+                }
+                if (cntD > 0) return false;
+                if (target && PIECES[target].color !== color) return false;
+                return true;
+            } else if (Math.abs(sx - dx) === Math.abs(sy - dy)) {
+                // 斜线跳吃
+                let cntD = 0;
+                let stepx = dx > sx ? 1 : -1;
+                let stepy = dy > sy ? 1 : -1;
+                let steps = Math.abs(dx - sx);
+                for (let k = 1; k < steps; k++) {
+                    if (board[sx + k * stepx][sy + k * stepy]) cntD++;
+                }
+                if (cntD !== 1) return false;
+                if (!target || PIECES[target].color === color) return false;
+                return true;
+            }
+            return false;
+        case 'rY': case 'bY':
+            // 运：2段折线移动，不可吃子
+            if (target && PIECES[target].color !== color) return false;
+            if (target && PIECES[target].color === color) {
+                // 交换：目标为己方可过河棋子
+                // 允许交换的棋子类型
+                const canSwap = ['R','H','C','S','J','T','D','G','Y'];
+                if (!canSwap.includes(target[1])) return false;
+                // 目标必须已过河
+                if ((color === 'red' && dx >= 5) || (color === 'black' && dx <= 4)) return false;
+                return true;
+            }
+            // 2段折线移动：先横后竖或先竖后横
+            if (sx === dx || sy === dy) {
+                // 直线移动（保持兼容性）
+                let cntY = 0;
+                if (sx === dx) {
+                    for (let j = Math.min(sy, dy) + 1; j < Math.max(sy, dy); j++) {
+                        if (board[sx][j]) cntY++;
+                    }
+                } else {
+                    for (let i = Math.min(sx, dx) + 1; i < Math.max(sx, dx); i++) {
+                        if (board[i][sy]) cntY++;
+                    }
+                }
+                if (cntY > 0) return false;
+            } else {
+                // 2段折线移动：检查是否存在一个中间点，使得从起点到中间点再到终点都是直线且无阻碍
+                let foundPath = false;
+                // 尝试所有可能的中间点
+                for (let mx = 0; mx < ROWS; mx++) {
+                    for (let my = 0; my < COLS; my++) {
+                        if (mx === sx && my === sy) continue; // 跳过起点
+                        if (mx === dx && my === dy) continue; // 跳过终点
+                        
+                        // 检查第一段：起点到中间点
+                        let firstLeg = true;
+                        if (mx === sx) {
+                            // 水平移动
+                            for (let j = Math.min(sy, my) + 1; j < Math.max(sy, my); j++) {
+                                if (board[sx][j]) { firstLeg = false; break; }
+                            }
+                        } else if (my === sy) {
+                            // 垂直移动
+                            for (let i = Math.min(sx, mx) + 1; i < Math.max(sx, mx); i++) {
+                                if (board[i][sy]) { firstLeg = false; break; }
+                            }
+                        } else {
+                            firstLeg = false;
+                        }
+                        
+                        // 检查第二段：中间点到终点
+                        let secondLeg = true;
+                        if (mx === dx) {
+                            // 水平移动
+                            for (let j = Math.min(my, dy) + 1; j < Math.max(my, dy); j++) {
+                                if (board[mx][j]) { secondLeg = false; break; }
+                            }
+                        } else if (my === dy) {
+                            // 垂直移动
+                            for (let i = Math.min(mx, dx) + 1; i < Math.max(mx, dx); i++) {
+                                if (board[i][my]) { secondLeg = false; break; }
+                            }
+                        } else {
+                            secondLeg = false;
+                        }
+                        
+                        if (firstLeg && secondLeg) {
+                            foundPath = true;
+                            break;
+                        }
+                    }
+                    if (foundPath) break;
+                }
+                if (!foundPath) return false;
+            }
+            if (target) return false; // 不能吃子
+            break;
+        case 'rM': case 'bM':
+            // 矿只能直线移动一格，不能吃子
+            if (target) return false;
+            if (!((Math.abs(sx - dx) === 1 && sy === dy) || (sx === dx && Math.abs(sy - dy) === 1))) return false;
+            break;
+        case 'rT': case 'bT':
+            // 坦：可直线和斜线移动吃子
+            if (!((sx === dx && sy !== dy) || (sy === dy && sx !== dx) || (Math.abs(sx - dx) === Math.abs(sy - dy) && sx !== dx))) return false;
+            // 不能隔子
+            if (sx === dx) {
+                let cnt = 0;
+                for (let j = Math.min(sy, dy) + 1; j < Math.max(sy, dy); j++) {
+                    if (board[sx][j]) cnt++;
+                }
+                if (cnt > 0) return false;
+            } else if (sy === dy) {
+                let cnt = 0;
+                for (let i = Math.min(sx, dx) + 1; i < Math.max(sx, dx); i++) {
+                    if (board[i][sy]) cnt++;
+                }
+                if (cnt > 0) return false;
+            } else if (Math.abs(sx - dx) === Math.abs(sy - dy)) {
+                let cnt = 0;
+                let stepx = dx > sx ? 1 : -1;
+                let stepy = dy > sy ? 1 : -1;
+                let steps = Math.abs(dx - sx);
+                for (let k = 1; k < steps; k++) {
+                    if (board[sx + k * stepx][sy + k * stepy]) cnt++;
+                }
+                if (cnt > 0) return false;
+            }
+            break;
+        default:
+            return false;
+    }
+    // 不能自杀（走完后被将军）- 已移除红棋限制
+    if (!ignoreCheck && color === 'black') {
+        const backup = JSON.parse(JSON.stringify(board));
+        board[dx][dy] = piece;
+        board[sx][sy] = null;
+        const inCheck = isInCheck(color);
+        board = backup;
+        if (inCheck) return false;
+    }
+    return true;
+}
+
+// 悔棋函数
+function undoMove() {
+    // 使用红棋走子前的状态（lastLastBoard）
+    if (!lastLastBoard || gameOver) return false;
+    
+    board = JSON.parse(JSON.stringify(lastLastBoard));
+    redResource = lastLastRedResource;
+    blackResource = lastLastBlackResource;
+    // 悔棋后总是回到红棋回合
+    currentPlayer = 'red';
+    turnCount = lastLastTurnCount;
+    
+    // 清空状态
+    selected = null;
+    validMoves = [];
+    spawnSelect = null;
+    spawnDesc = '';
+    gameOver = false;
+    
+    // 确保AI相关状态也重置
+    handleCellClick._turnResourceAdded = false;
+    aiMove._turnResourceAdded = false;
+    
+    // 强制刷新界面并重置所有状态
+    renderBoard();
+    
+    // 确保红方可以正常行动
+    setTimeout(() => {
+        renderBoard();
+        updateGameInfo('悔棋成功，轮到红方行动');
+    }, 100);
+    
+    // 调试信息
+    console.log('悔棋后状态:', {
+        currentPlayer,
+        gameOver,
+        selected,
+        validMoves: validMoves.length,
+        spawnSelect,
+        spawnDesc
+    });
+    
+    return true;
+}
+
+// 对将判定：检查是否将帅对面
+function isFaceToFace() {
+    let rky = -1, rkyx = -1, bky = -1, bkyx = -1;
+    for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) {
+        if (board[i][j] === 'rK') { rky = j; rkyx = i; }
+        if (board[i][j] === 'bK') { bky = j; bkyx = i; }
+    }
+    if (rky === bky && rky !== -1 && bky !== -1) {
+        let minx = Math.min(rkyx, bkyx), maxx = Math.max(rkyx, bkyx);
+        for (let i = minx+1; i < maxx; i++) {
+            if (board[i][rky]) return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+// 电脑AI走棋（3层极大极小搜索，黑棋）
+function aiMove() {
+    if (gameOver) return;
+    // 只为黑棋行动
+    if (currentPlayer !== 'black') return;
+    
+    // 40%概率本回合新造棋子价值为0，防止AI无限造兵
+    let newSpawnValueZero = Math.random() < 0.4;
+    
+    // 分析当前威胁情况
+    analyzeThreats();
+    
+    let best = aiSearch(3, true, -Infinity, Infinity, null, newSpawnValueZero);
+    if (best && best.move) {
+        // 验证选择的移动是否会导致送子
+        if (best.move.type === 'move') {
+            const willBeCaptured = willMoveBeCaptured(best.move.sx, best.move.sy, best.move.dx, best.move.dy, 'black');
+            if (willBeCaptured) {
+                console.warn('⚠️ AI选择了送子的移动！');
+                console.warn(`移动${PIECES[board[best.move.sx][best.move.sy]].name}从(${best.move.sx},${best.move.sy})到(${best.move.dx},${best.move.dy})会被吃掉`);
+            }
+        }
+        
+        // 详细分析AI的选择
+        console.log('=== AI选择分析 ===');
+        if (best.move.type === 'spawn') {
+            console.log(`AI选择造${SPAWNABLES.find(s=>s.type===best.move.pieceType).name}(${best.move.x},${best.move.y})`);
+            console.log(`造兵成本：${SPAWNABLES.find(s=>s.type===best.move.pieceType).cost}`);
+            console.log(`新造棋子价值：${Math.floor(PIECE_VALUE[best.move.pieceType] * 0.1)}`);
+        } else {
+            const moving = board[best.move.sx][best.move.sy];
+            const target = board[best.move.dx][best.move.dy];
+            console.log(`AI选择移动${PIECES[moving].name}从(${best.move.sx},${best.move.sy})到(${best.move.dx},${best.move.dy})`);
+            if (target) {
+                console.log(`吃掉${PIECES[target].name}，获得价值：${PIECE_VALUE[target[1]]}`);
+            }
+        }
+        console.log('==================');
+        
+        // 输出策略信息
+        let strategyInfo = '';
+        if (best.move.type === 'spawn') {
+            strategyInfo = `黑方使用3层极大极小搜索策略：造${SPAWNABLES.find(s=>s.type===best.move.pieceType).name}(${best.move.x},${best.move.y})`;
+        } else {
+            const moving = board[best.move.sx][best.move.sy];
+            const target = board[best.move.dx][best.move.dy];
+            let moveDesc = `移动${PIECES[moving].name}从(${best.move.sx},${best.move.sy})到(${best.move.dx},${best.move.dy})`;
+            if (target) {
+                moveDesc += `，吃掉${PIECES[target].name}`;
+            }
+            strategyInfo = `黑方使用3层极大极小搜索策略：${moveDesc}`;
+        }
+        updateGameInfo(strategyInfo);
+        
+        if (best.move.type === 'spawn') {
+            // 保存AI造兵前状态
+            lastBoard = JSON.parse(JSON.stringify(board));
+            lastRedResource = redResource;
+            lastBlackResource = blackResource;
+            lastCurrentPlayer = currentPlayer;
+            lastTurnCount = turnCount;
+            board[best.move.x][best.move.y] = 'b'+best.move.pieceType;
+            blackResource -= SPAWNABLES.find(s=>s.type===best.move.pieceType).cost;
+            turnCount++;
+            if (isFaceToFace()) {
+                gameOver = true;
+                updateGameInfo('黑方主动对将，判负！');
+                addTurnResource('red');
+                currentPlayer = 'red';
+                handleCellClick._turnResourceAdded = false;
+                aiMove._turnResourceAdded = false;
+                spawnSelect = null;
+                spawnDesc = '';
+                validMoves = [];
+                renderBoard();
+                return;
+            } else {
+                addTurnResource('red');
+                currentPlayer = 'red';
+                handleCellClick._turnResourceAdded = false;
+                aiMove._turnResourceAdded = false;
+                spawnSelect = null;
+                spawnDesc = '';
+                validMoves = [];
+                renderBoard();
+                return;
+            }
+        } else {
+            if (movePiece(best.move.sx, best.move.sy, best.move.dx, best.move.dy)) {
+                addTurnResource('red');
+                currentPlayer = 'red';
+                handleCellClick._turnResourceAdded = false;
+                aiMove._turnResourceAdded = false;
+                spawnSelect = null;
+                spawnDesc = '';
+                validMoves = [];
+                renderBoard();
+                return;
+            }
+        }
+    }
+    // 无棋可走
+    updateGameInfo('黑方无棋可走，认输！');
+    gameOver = true;
+}
+
+// 统计黑棋士的数量
+function countBlackAdvisors() {
+    let count = 0;
+    for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+            if (board[i][j] === 'bA') {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// 统计黑棋指定类型棋子的数量
+function countBlackPieces(pieceType) {
+    let count = 0;
+    for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+            if (board[i][j] === 'b' + pieceType) {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// 3层极大极小搜索，黑棋为极大层，红棋为极小层
+function aiSearch(depth, isMax, alpha, beta, newSpawnPos = null, newSpawnValueZero = false) {
+    if (depth === 0 || gameOver) {
+        return { score: evaluateBoard(newSpawnPos, newSpawnValueZero) };
+    }
+    let moves = [];
+    let color = isMax ? 'black' : 'red';
+    // 所有走子
+    for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) {
+        if (board[i][j] && PIECES[board[i][j]].color === color) {
+            let valid = getValidMoves(i, j, color);
+            for (const m of valid) {
+                moves.push({type:'move', sx:i, sy:j, dx:m.x, dy:m.y});
+            }
+        }
+    }
+    // 所有造兵
+    if (isMax) { // 只允许黑棋造兵
+        for (const s of SPAWNABLES) {
+            if (s.type === 'M' || s.type === 'Y') continue;
+            if (!PIECES['b'+s.type] || blackResource < s.cost) continue;
+            
+            // 限制除兵外的所有棋子最多5个
+            if (s.type !== 'S' && countBlackPieces(s.type) >= 5) continue;
+            
+            for (const pos of s.pos) {
+                if (!board[pos[0]][pos[1]] && pos[0]<=4) {
+                    moves.push({type:'spawn', pieceType:s.type, x:pos[0], y:pos[1]});
+                }
+            }
+        }
+    }
+    let bestScore = isMax ? -Infinity : Infinity;
+    let bestMove = null;
+    let bestMoves = []; // 存储所有最优解
+    
+    for (const move of moves) {
+        // 备份
+        let boardBak = JSON.parse(JSON.stringify(board));
+        let redResourceBak = redResource;
+        let blackResourceBak = blackResource;
+        let currentPlayerBak = currentPlayer;
+        let turnCountBak = turnCount;
+        let gameOverBak = gameOver;
+        let valid = true;
+        let currentNewSpawnPos = newSpawnPos;
+        
+        if (move.type === 'move') {
+            valid = movePiece(move.sx, move.sy, move.dx, move.dy);
+        } else if (move.type === 'spawn') {
+            board[move.x][move.y] = 'b'+move.pieceType;
+            blackResource -= SPAWNABLES.find(s=>s.type===move.pieceType).cost;
+            turnCount++;
+            // 记录新造棋子的位置
+            currentNewSpawnPos = {x: move.x, y: move.y, color: 'black'};
+        }
+        
+        // 检查是否会导致对将（只检查黑棋的走法）
+        if (isMax && valid) {
+            if (isFaceToFace()) {
+                valid = false; // 对将的走法无效
+            }
+        }
+        
+        let score = valid ? aiSearch(depth-1, !isMax, alpha, beta, currentNewSpawnPos, newSpawnValueZero).score : (isMax ? -9999999 : 9999999);
+        
+        // 调试信息：输出每个移动的评分
+        if (isMax && depth === 3) {
+            if (move.type === 'spawn') {
+                console.log(`  造${SPAWNABLES.find(s=>s.type===move.pieceType).name}(${move.x},${move.y}) - 评分：${score}`);
+            } else {
+                const moving = boardBak[move.sx][move.sy];
+                const target = boardBak[move.dx][move.dy];
+                let moveDesc = `移动${PIECES[moving].name}从(${move.sx},${move.sy})到(${move.dx},${move.dy})`;
+                if (target) {
+                    moveDesc += `，吃掉${PIECES[target].name}`;
+                }
+                console.log(`  ${moveDesc} - 评分：${score}`);
+            }
+        }
+        
+        // 恢复
+        board = boardBak;
+        redResource = redResourceBak;
+        blackResource = blackResourceBak;
+        currentPlayer = currentPlayerBak;
+        turnCount = turnCountBak;
+        gameOver = gameOverBak;
+        
+        if (isMax) {
+            if (score > bestScore) {
+                bestScore = score;
+                bestMove = move;
+                bestMoves = [move]; // 重置最优解列表
+            } else if (score === bestScore) { // 使用严格相等比较，因为现在都是整数
+                bestMoves.push(move); // 添加相同评分的最优解
+            }
+            alpha = Math.max(alpha, bestScore);
+            if (beta <= alpha) break;
+        } else {
+            if (score < bestScore) {
+                bestScore = score;
+                bestMove = move;
+            }
+            beta = Math.min(beta, bestScore);
+            if (beta <= alpha) break;
+        }
+    }
+    
+    // 如果有多个最优解，使用推进策略选择最优
+    if (isMax && bestMoves.length > 1) {
+        console.log(`极大极小搜索找到${bestMoves.length}个最优解，评分都是${bestScore}`);
+        console.log('最优解列表：');
+        for (let i = 0; i < bestMoves.length; i++) {
+            const move = bestMoves[i];
+            if (move.type === 'spawn') {
+                console.log(`  ${i+1}. 造${SPAWNABLES.find(s=>s.type===move.pieceType).name}(${move.x},${move.y})`);
+            } else {
+                const moving = board[move.sx][move.sy];
+                const target = board[move.dx][move.dy];
+                let moveDesc = `移动${PIECES[moving].name}从(${move.sx},${move.sy})到(${move.dx},${move.dy})`;
+                if (target) {
+                    moveDesc += `，吃掉${PIECES[target].name}`;
+                }
+                console.log(`  ${i+1}. ${moveDesc}`);
+            }
+        }
+        
+        bestMove = selectBestMoveByAdvanceStrategy(bestMoves);
+        
+        // 输出推进策略信息
+        if (bestMove.type === 'spawn') {
+            console.log(`推进策略：从${bestMoves.length}个最优解中选择造${SPAWNABLES.find(s=>s.type===bestMove.pieceType).name}`);
+        } else {
+            const moving = board[bestMove.sx][bestMove.sy];
+            const target = board[bestMove.dx][bestMove.dy];
+            let moveDesc = `移动${PIECES[moving].name}从(${bestMove.sx},${bestMove.sy})到(${bestMove.dx},${bestMove.dy})`;
+            if (target) {
+                moveDesc += `，吃掉${PIECES[target].name}`;
+            }
+            console.log(`推进策略：从${bestMoves.length}个最优解中选择${moveDesc}`);
+        }
+    }
+    
+    return {score: bestScore, move: bestMove};
+}
+
+// 棋盘评估函数：黑棋棋面价值-红棋棋面价值
+function evaluateBoard(newSpawnPos = null, newSpawnValueZero = false) {
+    // 检查对将情况
+    if (isFaceToFace()) {
+        return -999999; // 对将严重惩罚黑棋
+    }
+    
+    let black = 0, red = 0;
+    let newSpawnPenalty = 0; // 新造棋子被吃掉的惩罚
+    
+    for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) {
+        const p = board[i][j];
+        if (p) {
+            let val = PIECE_VALUE[p[1]] || 0;
+            
+            // 检查是否是新造的棋子
+            let isNewSpawn = false;
+            if (newSpawnPos && newSpawnPos.x === i && newSpawnPos.y === j && PIECES[p].color === newSpawnPos.color) {
+                isNewSpawn = true;
+                // 根据外层传入的参数决定新造棋子的价值
+                if (newSpawnValueZero) {
+                    val = 0; // 本回合新造棋子价值为0
+                } else {
+                    val = Math.floor(val * 0.1); // 新造棋子价值只有10%
+                }
+            }
+            
+            if (PIECES[p].color === 'black') {
+                black += val;
+                
+                // 如果新造的棋子被红棋吃掉，给予200%的扣分惩罚（基于调整后的价值）
+                if (isNewSpawn) {
+                    // 检查是否被红棋威胁（模拟被吃掉的情况）
+                    for (let rx = 0; rx < ROWS; rx++) for (let ry = 0; ry < COLS; ry++) {
+                        const rp = board[rx][ry];
+                        if (rp && PIECES[rp].color === 'red' && isValidMove(rx, ry, i, j, 'red', true)) {
+                            // 新造棋子被威胁，给予200%的扣分惩罚（基于调整后的价值）
+                            newSpawnPenalty += Math.floor(val * 2);
+                            break;
+                        }
+                    }
+                }
+            } else {
+                red += val;
+            }
+        }
+    }
+    
+    // 计算基础评分
+    let baseScore = black - red - newSpawnPenalty;
+    
+    return baseScore;
+}
+
+// 判断胜负
+function getWinner() {
+    let redKing = false, blackKing = false;
+    for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) {
+        if (board[i][j] === 'rK') redKing = true;
+        if (board[i][j] === 'bK') blackKing = true;
+    }
+    if (!redKing) return 'black';
+    if (!blackKing) return 'red';
+    return null;
+}
+
+// 初始化
+window.onload = function() {
+    board = getInitialBoard();
+    currentPlayer = 'red';
+    selected = null;
+    gameOver = false;
+    redResource = 100;
+    blackResource = blackInitResource;
+    validMoves = [];
+    spawnSelect = null;
+    spawnDesc = '';
+    turnCount = 1; // 游戏开始回合数为1
+    consecutiveChecks = 0; // 重置连续将军计数器
+    lastBoard = null;
+    lastLastBoard = null;
+    handleCellClick._turnResourceAdded = false;
+    aiMove._turnResourceAdded = false;
+    addTurnResource('red');
+    handleCellClick._turnResourceAdded = true;
+    spawnSelect = null;
+    spawnDesc = '';
+    validMoves = [];
+    renderBoard(); // 新增，确保资源显示
+    
+
+}
+
+// 动态插入重新开始按钮和悔棋按钮到棋盘正下方（普通按钮样式）
+if (typeof window !== 'undefined') {
+  setTimeout(()=>{
+    const boardDiv = document.getElementById('board');
+    
+    // 创建按钮容器
+    let buttonContainer = document.getElementById('button-container');
+    if (!buttonContainer) {
+      buttonContainer = document.createElement('div');
+      buttonContainer.id = 'button-container';
+      buttonContainer.style.marginTop = '12px';
+      buttonContainer.style.marginBottom = '16px';
+      buttonContainer.style.display = 'flex';
+      buttonContainer.style.gap = '10px';
+      buttonContainer.style.justifyContent = 'center';
+      buttonContainer.style.width = '100%';
+      buttonContainer.style.maxWidth = '100%';
+      buttonContainer.style.alignItems = 'center';
+      buttonContainer.style.flexWrap = 'wrap';
+    }
+    
+    // 重新开始按钮
+    let restartBtn = document.getElementById('restart-btn');
+    if (!restartBtn) {
+      restartBtn = document.createElement('button');
+      restartBtn.id = 'restart-btn';
+      restartBtn.innerText = '重新开始';
+      // 移除内联样式重置，让CSS样式生效
+    }
+    
+    // 悔棋按钮
+    let undoBtn = document.getElementById('undo-btn');
+    if (!undoBtn) {
+      undoBtn = document.createElement('button');
+      undoBtn.id = 'undo-btn';
+      undoBtn.innerText = '悔棋';
+      // 移除内联样式重置，让CSS样式生效
+    }
+    
+    // 调试按钮（仅桌面端显示）
+    let debugBtn = null;
+    if (window.innerWidth > 768) {
+      debugBtn = document.createElement('button');
+      debugBtn.id = 'debug-btn';
+      debugBtn.innerText = '调试';
+      debugBtn.style.marginLeft = '10px';
+    }
+    
+    // 清空容器并添加按钮
+    buttonContainer.innerHTML = '';
+    buttonContainer.appendChild(restartBtn);
+    buttonContainer.appendChild(undoBtn);
+    if (debugBtn) {
+      buttonContainer.appendChild(debugBtn);
+    }
+    
+    // 在桌面端添加广告链接到按钮容器
+    if (window.innerWidth > 768) {
+        const adLinks = document.createElement('div');
+        adLinks.id = 'ad-links';
+        adLinks.innerHTML = `
+            <a href="https://dd6327ce-209b-4f66-9420-517229f01bbf.wangye.domolo.cn/p/5egnxo2m83.html" target="_blank">中国象棋与时俱进版</a>
+            <a href="https://dd6327ce-209b-4f66-9420-517229f01bbf.wangye.domolo.cn/p/5egnxo2m83.html" target="_blank">中国围棋新时代版</a>
+        `;
+        buttonContainer.appendChild(adLinks);
+    }
+    
+    // 根据屏幕尺寸决定按钮插入位置
+    if (window.innerWidth <= 768) {
+      // 手机端：将按钮放在兵营区外面，在资源显示区域下方
+      const mainContainer = document.getElementById('main-container');
+      const spawnContainer = document.getElementById('spawn-container');
+      if (mainContainer && spawnContainer && !document.getElementById('button-container')) {
+        // 将按钮容器插入到兵营容器之后，作为main-container的子元素
+        mainContainer.insertBefore(buttonContainer, spawnContainer.nextSibling);
+      }
+    } else {
+      // 桌面端：插入到棋盘下面
+      if (boardDiv && boardDiv.parentNode && !document.getElementById('button-container')) {
+        boardDiv.parentNode.insertBefore(buttonContainer, boardDiv.nextSibling);
+      }
+    }
+    
+    // 重新开始按钮事件
+    const restartClick = function() {
+      board = getInitialBoard();
+      currentPlayer = 'red';
+      selected = null;
+      gameOver = false;
+      redResource = 100;
+      blackResource = blackInitResource;
+      validMoves = [];
+      spawnSelect = null;
+      spawnDesc = '';
+      turnCount = 1;
+      consecutiveChecks = 0; // 重置连续将军计数器
+      lastBoard = null;
+      lastLastBoard = null;
+      renderBoard();
+      handleCellClick._turnResourceAdded = false;
+      aiMove._turnResourceAdded = false;
+      addTurnResource('red');
+      handleCellClick._turnResourceAdded = true;
+      spawnSelect = null;
+      spawnDesc = '';
+      validMoves = [];
+      renderBoard();
+    };
+    
+    restartBtn.onclick = restartClick;
+    restartBtn.ontouchstart = (e) => {
+      e.preventDefault();
+      restartClick();
+    };
+    
+    // 悔棋按钮事件
+    const undoClick = function() {
+      undoMove();
+    };
+    
+    undoBtn.onclick = undoClick;
+    undoBtn.ontouchstart = (e) => {
+      e.preventDefault();
+      undoClick();
+    };
+    
+    // 调试按钮事件（仅桌面端）
+    if (debugBtn) {
+      const debugClick = function() {
+        console.log('=== 当前棋面位置 ===');
+        console.log('回合数:', turnCount);
+        console.log('当前玩家:', currentPlayer);
+        console.log('红方资源:', redResource);
+        console.log('黑方资源:', blackResource);
+        console.log('连续将军次数:', consecutiveChecks);
+        console.log('棋盘状态:');
+        for (let i = 0; i < ROWS; i++) {
+          let row = [];
+          for (let j = 0; j < COLS; j++) {
+            row.push(board[i][j] || 'null');
+          }
+          console.log(`第${i}行:`, row);
+        }
+        console.log('==================');
+      };
+      
+      debugBtn.onclick = debugClick;
+    }
+  }, 200);
+}
+
+// 全局记录上一步红棋和黑棋行动
+let lastRedMove = null;
+let lastBlackMove = null;
+
+for (let i = 0; i < ROWS; i++) {
+  let row = [];
+  for (let j = 0; j < COLS; j++) {
+    row.push(board[i][j]);
+  }
+  console.log('ROW', i, row);
+}
+
+// 检查兵是否可以移动到运周围的8个格子
+function canMoveToYunSurrounding(sx, sy, dx, dy, color) {
+    // 查找己方的运
+    const yunColor = color === 'red' ? 'rY' : 'bY';
+    for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+            if (board[i][j] === yunColor) {
+                // 检查目标位置是否在运周围的8个格子内
+                if (Math.abs(dx - i) <= 1 && Math.abs(dy - j) <= 1) {
+                    // 目标位置在运周围8格内
+                    // 检查目标位置是否为空
+                    if (!board[dx][dy]) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// 推进策略：从多个最优解中选择最优
+function selectBestMoveByAdvanceStrategy(moves) {
+    let bestMove = moves[0];
+    let bestScore = -Infinity;
+    
+    console.log('推进策略开始评估：');
+    
+    for (const move of moves) {
+        let score = 0;
+        
+        if (move.type === 'move') {
+            const moving = board[move.sx][move.sy];
+            
+            // 1. 过河加分：黑棋从黑棋区移动到红棋区域
+            if (move.sx <= 4 && move.dx >= 5) {
+                // 坦、车、马、机、甲、兵进入红方区域分值加大
+                if (['T', 'R', 'H', 'J', 'G', 'S'].includes(moving[1])) {
+                    score += 20; // 这些棋子过河加分加大
+                    console.log(`    过河加分：+20`);
+                } else if (['C', 'D'].includes(moving[1])) {
+                    score += 10; // 其他能过河的棋子保持原有加分
+                    console.log(`    过河加分：+10`);
+                }
+            }
+            
+            // 2. 黑棋区可过河棋子往红棋区推进加分
+            if (move.sx <= 4 && move.dx >= 5) {
+                // 检查是否是可过河的棋子类型
+                if (['T', 'R', 'H', 'J', 'G', 'S', 'C', 'D'].includes(moving[1])) {
+                    score += 15; // 可过河棋子推进加分
+                    console.log(`    推进加分：+15`);
+                }
+            }
+            
+            // 3. 兵和马安全推进加分
+            if (['S', 'H'].includes(moving[1])) {
+                // 检查是否是推进移动（向前移动）
+                if (move.dx > move.sx) { // 黑棋向前推进
+                    // 检查目标位置是否安全（不被红棋直接攻击）
+                    let isSafe = true;
+                    for (let i = 0; i < ROWS; i++) {
+                        for (let j = 0; j < COLS; j++) {
+                            const rp = board[i][j];
+                            if (rp && PIECES[rp].color === 'red' && isValidMove(i, j, move.dx, move.dy, 'red', true)) {
+                                isSafe = false;
+                                break;
+                            }
+                        }
+                        if (!isSafe) break;
+                    }
+                    
+                    if (isSafe) {
+                        if (moving[1] === 'S') {
+                            score += 25; // 兵安全推进加分
+                            console.log(`    兵安全推进加分：+25`);
+                        } else if (moving[1] === 'H') {
+                            score += 30; // 马安全推进加分
+                            console.log(`    马安全推进加分：+30`);
+                        }
+                    }
+                }
+            }
+            
+            // 4. 将军加分（连续将军递减）
+            // 模拟这个走法
+            const target = board[move.dx][move.dy];
+            board[move.dx][move.dy] = moving;
+            board[move.sx][move.sy] = null;
+            
+            // 检查是否将军
+            let isCheck = isInCheck('red');
+            
+            // 恢复棋盘
+            board[move.sx][move.sy] = moving;
+            board[move.dx][move.dy] = target;
+            
+            if (isCheck) {
+                // 连续将军递减：第1次将军+20，第2次+10，第3次+5，第4次+2，第5次及以后+0
+                let checkBonus = Math.max(0, 20 - (consecutiveChecks - 1) * 10);
+                if (consecutiveChecks >= 5) checkBonus = 0;
+                score += checkBonus;
+                console.log(`    将军加分：+${checkBonus}`);
+            }
+        }
+        
+        // 输出移动信息
+        if (move.type === 'spawn') {
+            console.log(`  造${SPAWNABLES.find(s=>s.type===move.pieceType).name}(${move.x},${move.y}) - 总分：${score}`);
+        } else {
+            const moving = board[move.sx][move.sy];
+            const target = board[move.dx][move.dy];
+            let moveDesc = `移动${PIECES[moving].name}从(${move.sx},${move.sy})到(${move.dx},${move.dy})`;
+            if (target) {
+                moveDesc += `，吃掉${PIECES[target].name}`;
+            }
+            console.log(`  ${moveDesc} - 总分：${score}`);
+        }
+        
+        if (score > bestScore) {
+            bestScore = score;
+            bestMove = move;
+        }
+    }
+    
+    console.log(`推进策略选择：总分${bestScore}`);
+    return bestMove;
+}
+
+// 检查移动是否会导致送子
+function willMoveBeCaptured(sx, sy, dx, dy, color) {
+    const moving = board[sx][sy];
+    const target = board[dx][dy];
+    
+    // 模拟移动
+    board[dx][dy] = moving;
+    board[sx][sy] = null;
+    
+    // 检查移动后的棋子是否会被对方吃掉
+    let willBeCaptured = false;
+    const opponentColor = color === 'red' ? 'black' : 'red';
+    
+    for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+            const p = board[i][j];
+            if (p && PIECES[p].color === opponentColor && isValidMove(i, j, dx, dy, opponentColor, true)) {
+                willBeCaptured = true;
+                break;
+            }
+        }
+        if (willBeCaptured) break;
+    }
+    
+    // 恢复棋盘
+    board[sx][sy] = moving;
+    board[dx][dy] = target;
+    
+    return willBeCaptured;
+}
+
+// 统计黑棋士的数量
+function countBlackAdvisors() {
+    let count = 0;
+    for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+            if (board[i][j] === 'bA') {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
+// 分析当前棋面的威胁情况
+function analyzeThreats() {
+    console.log('=== 威胁分析 ===');
+    for (let i = 0; i < ROWS; i++) {
+        for (let j = 0; j < COLS; j++) {
+            const p = board[i][j];
+            if (p && PIECES[p].color === 'black') {
+                // 检查这个黑棋是否被红棋威胁
+                let isThreatened = false;
+                for (let rx = 0; rx < ROWS; rx++) {
+                    for (let ry = 0; ry < COLS; ry++) {
+                        const rp = board[rx][ry];
+                        if (rp && PIECES[rp].color === 'red' && isValidMove(rx, ry, i, j, 'red', true)) {
+                            isThreatened = true;
+                            console.log(`${PIECES[p].name}(${i},${j}) 被 ${PIECES[rp].name}(${rx},${ry}) 威胁`);
+                            break;
+                        }
+                    }
+                    if (isThreatened) break;
+                }
+            }
+        }
+    }
+    console.log('================');
+}
+
+</script>
