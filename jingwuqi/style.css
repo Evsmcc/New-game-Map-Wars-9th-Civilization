@@ -1,0 +1,131 @@
+* {
+  box-sizing: border-box;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #f6f7fb;
+  color: #222;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+.app {
+  max-width: 1300px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+.board-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  padding: 16px;
+}
+.sidebar {
+  width: 250px;
+  min-width: 250px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+.move-guide {
+  max-height: 560px;
+  overflow-y: auto;
+}
+.move-rule {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.move-rule:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.rule-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #374151;
+}
+.rule-desc {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #6b7280;
+}
+.panel-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+.divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 8px 0;
+}
+.toggle input {
+  margin-right: 8px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  appearance: none;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn:hover {
+  background: #f3f4f6;
+}
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  width: 360px;
+  max-width: calc(100% - 32px);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+  padding: 16px;
+}
+.modal-title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.modal-tip {
+  font-size: 12px;
+  color: #6b7280;
+}
+canvas#board {
+  width: 720px;
+  height: 560px;
+  display: block;
+}
