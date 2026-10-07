@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>幻界围棋</title>
+  <link rel="stylesheet" href="style.css?v=20261007e">
+</head>
+<body>
+  <main class="app">
+
+    <!-- 左侧：标题 / 游戏说明 / 特殊棋子图例 -->
+    <aside class="side side-left">
+      <h1 class="title">幻界围棋</h1>
+
+      <section class="panel how-panel">
+        <h2>游戏玩法（得分高者胜）</h2>
+        <ul class="how-list">
+          <li>黑方 <b>🧛‍♀️</b> 与红方 <b>💂‍♂️</b> 轮流落子</li>
+          <li>被非己方棋子围住的棋子将被吃掉(同围棋规则)，每吃个棋子得6分。</li>
+        </ul>    
+      </section>
+
+      <section class="panel how-panel">
+        <h2>结束条件（满足其一即可）</h2>
+        <ul class="how-list">
+          <li>对局在<b>第 100 手 结束</b>。</li>
+          <li>一方得分<b>超过 100</b>。</li>               
+        </ul>     
+      </section>
+
+      <section class="panel legend-panel">
+        <h2>中立棋子/地形说明</h2>
+        <ul class="how-list">
+          <li>落：该单位占格子，此处不可落子</b>。</li>
+          <li>墙：该单位参与围困</b>。</li>                
+          <li>吃：该单位被围后可提走</b>。</li>
+          <li>享：每个相邻棋子获得 1/4 分</b>。</li>        
+          <li>分：吃掉或占领该单位的得分</b>。</li>
+          <li>🟦水域上棋子仅可存在一回合</b>。</li>                                         
+        </ul>   
+
+        <div class="legend-head">
+          <span></span><span></span>
+          <span title="可落子">落</span>
+          <span title="参与围困">墙</span>
+          <span title="可被吃">吃</span>
+          <span title="分享：相邻棋子每枚获得 1/4 分，被吃后失去">享</span>
+          <span title="得分">分</span>
+        </div>
+        <div class="legend" id="legend"></div>
+      </section>
+
+    </aside>
+
+    <!-- 中间：棋盘 -->
+    <div class="board-frame">
+      <canvas id="board" aria-label="15路棋盘"></canvas>
+      <div class="result-overlay" id="resultOverlay">
+        <div class="result-card">
+          <div class="result-emoji" id="resultEmoji">🧛‍♀️</div>
+          <div class="result-title" id="resultTitle">黑方获胜</div>
+          <div class="result-score" id="resultScore"></div>
+          <div class="result-reason" id="resultReason"></div>
+          <button id="resultReset" type="button">再来一局</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：回合状态 / 黑方行囊 / 红方行囊 / 操作 -->
+    <aside class="side side-right">
+
+    <!-- 左上角：返回首页 -->
+    <a class="home-btn" href="https://evsmcc.github.io/New-game-Map-Wars-9th-Civilization/" title="返回首页" aria-label="返回首页"><span>新棋游戏大全</span></a>
+
+      <div class="statusbar">
+        <div class="turn">
+          <span id="turnStone" class="turn-stone black"></span>
+          <span id="turnText">黑方落子</span>
+        </div>
+        <div class="moves">第 <strong id="moveCount">0</strong> 手</div>
+        <div class="pool-info">
+          <div class="pool-title">已现棋子 <strong id="poolDrawn">0</strong><span class="pool-sep">/</span><span id="poolTotal">225</span></div>
+          <div class="pool-grid" id="poolGrid"></div>
+        </div>
+      </div>
+
+      <section class="panel panel-black" id="panelBlack">
+        <h2>
+          <span class="mini-stone black"></span>黑方行囊
+          <span class="score-tag">得分 <strong id="scoreBlack">0</strong></span>
+          <span class="cap-tag">提 <strong id="capBlack">0</strong></span>
+        </h2>
+        <div class="bag" id="bagBlack"></div>
+      </section>
+
+      <section class="panel panel-white" id="panelWhite">
+        <h2>
+          <span class="mini-stone red"></span>红方行囊
+          <span class="score-tag">得分 <strong id="scoreWhite">0</strong></span>
+          <span class="cap-tag">提 <strong id="capWhite">0</strong></span>
+        </h2>
+        <div class="bag" id="bagWhite"></div>
+      </section>
+
+      <div class="controls">
+        <button id="resetBtn" type="button">重新开始</button>
+        <div class="ai-box">
+          <label class="ai-opt">
+            <input type="checkbox" id="aiBlack">
+            <span class="ai-cb"></span>黑方 AI 托管
+          </label>
+          <label class="ai-opt">
+            <input type="checkbox" id="aiRed" checked>
+            <span class="ai-cb"></span>红方 AI 托管
+          </label>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="game.js?v=20261007e" defer></script>
+  <script src="ai.js?v=20261007e" defer></script>
+</body>
+</html>
